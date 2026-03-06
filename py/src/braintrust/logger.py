@@ -43,6 +43,7 @@ import urllib3
 from braintrust.functions.stream import BraintrustStream
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from uuid_utils import uuid7
 
 from . import context, id_gen
 from .bt_json import bt_dumps, bt_safe_deep_copy
@@ -376,7 +377,7 @@ NOOP_SPAN_PERMALINK = "https://www.braintrust.dev/noop-span"
 
 class BraintrustState:
     def __init__(self):
-        self.id = str(uuid.uuid4())
+        self.id = str(uuid7())
         self.current_experiment: Experiment | None = None
         # We use both a ContextVar and a plain attribute for the current logger:
         # - _cv_logger (ContextVar): Provides async context isolation so different
@@ -3268,7 +3269,7 @@ def _log_feedback_impl(
         # pylint: disable=function-redefined
         def compute_comment_record():
             return dict(
-                id=str(uuid.uuid4()),
+                id=str(uuid7()),
                 created=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 origin={
                     # NOTE: We do not know (or care?) what the transaction id of the row that
@@ -4072,7 +4073,7 @@ class SpanImpl(Span):
         # TODO: can be simplified after `event` is typed.
         id = event.pop("id", None)
         if id is None or not isinstance(id, str):
-            id = str(uuid.uuid4())
+            id = str(uuid7())
         self._id = id
 
         # Resolve all span IDs (span_id, root_span_id, span_parents)
@@ -4578,7 +4579,7 @@ class Dataset(ObjectFetcher[DatasetEvent]):
         """
         self._validate_event(metadata=metadata, expected=expected, output=output, tags=tags)
 
-        row_id = id or str(uuid.uuid4())
+        row_id = id or str(uuid7())
 
         args = self._create_args(
             id=row_id,

@@ -1,7 +1,8 @@
 import os
 import secrets
-import uuid
 from abc import ABC, abstractmethod
+
+from uuid_utils import uuid7
 
 
 def get_id_generator():
@@ -32,13 +33,13 @@ class IDGenerator(ABC):
 
 
 class UUIDGenerator(IDGenerator):
-    """ID generator that uses UUID4 for both span and trace IDs."""
+    """ID generator that uses UUIDv7 for both span and trace IDs."""
 
     def get_span_id(self):
-        return str(uuid.uuid4())
+        return str(uuid7())
 
     def get_trace_id(self):
-        return str(uuid.uuid4())
+        return str(uuid7())
 
     def share_root_span_id(self):
         return True
