@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, AsyncGenerator, List, cast
+from typing import Any, AsyncGenerator, List
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -1156,7 +1156,7 @@ def test_span_link_with_resolved_experiment(with_simulate_login, with_memory_log
     assert eid == "test-experiment-id"
 
     span = experiment.start_span(name="test-span")
-    cast(Any, span).parent_object_id = id_lazy_value
+    span.parent_object_id = id_lazy_value
     span.end()
 
     link = span.link()
@@ -1197,7 +1197,7 @@ def test_experiment_span_link_uses_env_vars_when_logged_out(with_memory_logger):
 
         # Create span with resolved experiment ID
         span = experiment.start_span(name="test-span")
-        cast(Any, span).parent_object_id = LazyValue(lambda: "test-exp-id", use_mutex=False)
+        span.parent_object_id = LazyValue(lambda: "test-exp-id", use_mutex=False)
         span.end()
 
         link = span.link()
@@ -3623,7 +3623,7 @@ def test_span_exit_logs_exception_group_sub_exceptions(with_memory_logger):
     init_test_logger(__name__)
 
     with pytest.raises(exceptiongroup.ExceptionGroup):
-        with cast(Any, braintrust.current_logger()).start_span(name="eg-span"):
+        with braintrust.current_logger().start_span(name="eg-span"):
             raise _raise_test_exception_group()
 
     logs = with_memory_logger.pop()

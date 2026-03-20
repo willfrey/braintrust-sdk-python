@@ -6,7 +6,7 @@ import base64
 import dataclasses
 import json
 from enum import Enum
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from .span_identifier_v2 import SpanComponentsV2
@@ -218,7 +218,7 @@ class SpanComponentsV3:
             **json_obj,
             "object_type": SpanObjectTypeV3(json_obj["object_type"]),
         }
-        return SpanComponentsV3(**cast(Any, kwargs))
+        return SpanComponentsV3(**kwargs)
 
 
 def parse_parent(parent: str | dict | None) -> str | None:
@@ -244,7 +244,7 @@ def parse_parent(parent: str | dict | None) -> str | None:
             "project_logs": SpanObjectTypeV3.PROJECT_LOGS,
         }
 
-        object_type = object_type_map.get(cast(str, parent.get("object_type")))
+        object_type = object_type_map.get(parent.get("object_type"))
         if not object_type:
             raise ValueError(f"Invalid object_type: {parent.get('object_type')}")
 
@@ -276,6 +276,6 @@ def parse_parent(parent: str | dict | None) -> str | None:
         if "propagated_event" in parent:
             kwargs["propagated_event"] = parent.get("propagated_event")
 
-        return SpanComponentsV3(**cast(Any, kwargs)).to_str()
+        return SpanComponentsV3(**kwargs).to_str()
     else:
         return None

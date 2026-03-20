@@ -1,7 +1,7 @@
 import logging
 import os
 import warnings
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urljoin
 
 
@@ -331,7 +331,7 @@ class BraintrustSpanProcessor:
 
             if current_span and hasattr(current_span, "attributes") and current_span.attributes:
                 # Check if parent span has braintrust.parent attribute
-                attributes = dict(cast(Any, current_span.attributes))
+                attributes = dict(current_span.attributes)
                 return attributes.get("braintrust.parent")
 
             return None
@@ -441,8 +441,8 @@ def context_from_span_export(export_str: str):
     )
 
     # Convert hex strings to OTEL integers
-    trace_id_int = int(cast(str, components.root_span_id), 16)
-    span_id_int = int(cast(str, components.span_id), 16)
+    trace_id_int = int(components.root_span_id, 16)
+    span_id_int = int(components.span_id, 16)
 
     # Create OTEL SpanContext marked as remote
     span_context = SpanContext(
@@ -632,38 +632,37 @@ def parent_from_headers(headers: dict[str, str], propagator=None) -> str | None:
         return None
 
     if braintrust_parent:
-        braintrust_parent_str = cast(str, braintrust_parent)
         from braintrust.span_identifier_v3 import SpanObjectTypeV3
 
         # Parse braintrust.parent format: "project_id:abc", "project_name:xyz", or "experiment_id:123"
-        if braintrust_parent_str.startswith("project_id:"):
+        if braintrust_parent.startswith("project_id:"):
             object_type = SpanObjectTypeV3.PROJECT_LOGS
-            object_id = braintrust_parent_str[len("project_id:") :]
+            object_id = braintrust_parent[len("project_id:"):]
             if not object_id:
                 logging.error(
-                    f"parent_from_headers: Invalid braintrust.parent format (empty project_id): {braintrust_parent_str}"
+                    f"parent_from_headers: Invalid braintrust.parent format (empty project_id): {braintrust_parent}"
                 )
                 return None
-        elif braintrust_parent_str.startswith("project_name:"):
+        elif braintrust_parent.startswith("project_name:"):
             object_type = SpanObjectTypeV3.PROJECT_LOGS
-            project_name = braintrust_parent_str[len("project_name:") :]
+            project_name = braintrust_parent[len("project_name:"):]
             if not project_name:
                 logging.error(
-                    f"parent_from_headers: Invalid braintrust.parent format (empty project_name): {braintrust_parent_str}"
+                    f"parent_from_headers: Invalid braintrust.parent format (empty project_name): {braintrust_parent}"
                 )
                 return None
             compute_args = {"project_name": project_name}
-        elif braintrust_parent_str.startswith("experiment_id:"):
+        elif braintrust_parent.startswith("experiment_id:"):
             object_type = SpanObjectTypeV3.EXPERIMENT
-            object_id = braintrust_parent_str[len("experiment_id:") :]
+            object_id = braintrust_parent[len("experiment_id:"):]
             if not object_id:
                 logging.error(
-                    f"parent_from_headers: Invalid braintrust.parent format (empty experiment_id): {braintrust_parent_str}"
+                    f"parent_from_headers: Invalid braintrust.parent format (empty experiment_id): {braintrust_parent}"
                 )
                 return None
         else:
             logging.error(
-                f"parent_from_headers: Invalid braintrust.parent format: {braintrust_parent_str}. "
+                f"parent_from_headers: Invalid braintrust.parent format: {braintrust_parent}. "
                 "Expected format: 'project_id:ID', 'project_name:NAME', or 'experiment_id:ID'"
             )
             return None
@@ -671,7 +670,7 @@ def parent_from_headers(headers: dict[str, str], propagator=None) -> str | None:
     # Create SpanComponentsV4 and export as string
     # Set row_id to enable span_id/root_span_id (required for parent linking)
     components = SpanComponentsV4(
-        object_type=cast(Any, object_type),
+        object_type=object_type,
         object_id=object_id,
         compute_object_metadata_args=compute_args,
         row_id="otel",  # Dummy row_id to enable span_id/root_span_id fields

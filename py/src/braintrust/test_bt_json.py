@@ -3,7 +3,7 @@
 # pyright: reportPrivateUsage=false
 import json
 import warnings
-from typing import Any, cast
+from typing import Any
 from unittest import TestCase
 
 import pytest
@@ -47,7 +47,7 @@ class TestBTJson(TestCase):
         self.assertEqual(original["nested_dict"]["inner"], "data")
         self.assertEqual(original["nested_dict"]["deep"]["level"], 3)
         self.assertEqual(original["nested_list"][0], 1)
-        self.assertEqual(cast(list, original["nested_list"])[2][0], 3)
+        self.assertEqual(original["nested_list"][2][0], 3)
         self.assertEqual(original["nested_in_list"][0]["key"], "val")
 
         # Add new keys to copy
@@ -381,7 +381,7 @@ class TestBTJsonAttachments(TestCase):
             "filename": "readonly.txt",
             "content_type": "text/plain",
         }
-        readonly = ReadonlyAttachment(cast(Any, reference))
+        readonly = ReadonlyAttachment(reference)
         result_readonly = _to_bt_safe(readonly)
         self.assertEqual(result_readonly, reference)
         self.assertIsNot(result_readonly, readonly)
@@ -503,7 +503,7 @@ class TestBTJsonAttachments(TestCase):
             "filename": "readonly.txt",
             "content_type": "text/plain",
         }
-        readonly_attachment = ReadonlyAttachment(cast(Any, reference))
+        readonly_attachment = ReadonlyAttachment(reference)
 
         original = {
             "base": base_attachment,

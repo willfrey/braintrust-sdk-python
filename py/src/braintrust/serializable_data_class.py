@@ -1,12 +1,12 @@
 import dataclasses
 import json
-from typing import Any, Union, cast, get_origin
+from typing import Any, Union, get_origin
 
 
 class SerializableDataClass:
     def as_dict(self):
         """Serialize the object to a dictionary."""
-        return dataclasses.asdict(cast(Any, self))
+        return dataclasses.asdict(self)
 
     def as_json(self, **kwargs):
         """Serialize the object to JSON."""
@@ -33,12 +33,8 @@ class SerializableDataClass:
             if k not in fields:
                 continue
 
-            field_type = cast(Any, fields[k].type)
-            if (
-                isinstance(v, dict)
-                and isinstance(field_type, type)
-                and issubclass(field_type, SerializableDataClass)
-            ):
+            field_type = fields[k].type
+            if isinstance(v, dict) and isinstance(field_type, type) and issubclass(field_type, SerializableDataClass):
                 filtered[k] = field_type.from_dict_deep(v)
             elif get_origin(field_type) == Union:
                 for t in field_type.__args__:

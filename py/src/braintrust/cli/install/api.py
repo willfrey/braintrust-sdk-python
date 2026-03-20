@@ -378,11 +378,9 @@ def main(args):
         _logger.info(f"Stack with name {args.name} has been created with status: {status['StackStatus']}")
         exit(0)
 
-    from typing import cast
-    status_any = cast(Any, status)
-    _logger.info(f"Stack with name {args.name} has status: {status_any['StackStatus']}")
+    _logger.info(f"Stack with name {args.name} has status: {status['StackStatus']}")
 
-    if not ("_COMPLETE" in status_any["StackStatus"] or "_FAILED" in status_any["StackStatus"]):
+    if not ("_COMPLETE" in status["StackStatus"] or "_FAILED" in status["StackStatus"]):
         _logger.info(f"Please re-run this command once the stack has finished creating or updating")
         exit(0)
 
@@ -403,7 +401,7 @@ def main(args):
             new_template = cloudformation.get_template_summary(TemplateURL=template)
             new_params = set(x["ParameterKey"] for x in new_template["Parameters"])
         else:
-            new_params = set(x["ParameterKey"] for x in cast(Any, status)["Parameters"])
+            new_params = set(x["ParameterKey"] for x in status["Parameters"])
 
         stack = cloudformation.describe_stacks(StackName=args.name)["Stacks"][0]
         try:
@@ -487,17 +485,16 @@ def main(args):
             if len(org_info) == 1:
                 org_info = org_info[0]
 
-        org_info_any = cast(Any, org_info)
-        if org_info_any and (universal_url and org_info_any["api_url"] != universal_url):
+        if org_info and (universal_url and org_info["api_url"] != universal_url):
             if args.update_stack_url:
-                _logger.info(f"Will update org {org_info_any['name']}'s urls.")
+                _logger.info(f"Will update org {org_info['name']}'s urls.")
                 _logger.info(f"  They are currently set to:")
-                _logger.info(f"  API URL: {org_info_any['api_url']}")
-                _logger.info(f"  Proxy URL: {org_info_any['proxy_url']}")
+                _logger.info(f"  API URL: {org_info['api_url']}")
+                _logger.info(f"  Proxy URL: {org_info['proxy_url']}")
                 _logger.info(f"And will update them to:")
 
-                patch_args = {"id": org_info_any["id"]}
-                if universal_url and org_info_any["api_url"] != universal_url:
+                patch_args = {"id": org_info["id"]}
+                if universal_url and org_info["api_url"] != universal_url:
                     patch_args["api_url"] = universal_url
                     patch_args["is_universal_api"] = True
                     _logger.info(f"  API URL: {universal_url}")
@@ -514,6 +511,6 @@ def main(args):
                 )
             else:
                 _logger.info(f"Stack URL differs from organization API URL:")
-                _logger.info(f"  Current API URL: {org_info_any['api_url']}")
+                _logger.info(f"  Current API URL: {org_info['api_url']}")
                 _logger.info(f"  Stack Universal URL: {universal_url}")
                 _logger.info(f"To update the organization's API URL, rerun with --update-stack-url flag")

@@ -4,7 +4,7 @@ import re
 import time
 import warnings
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 from wrapt import wrap_function_wrapper
 
@@ -160,7 +160,7 @@ class ChatCompletionWrapper:
 
         try:
             start = time.time()
-            create_response = cast(Callable[..., Any], self.create_fn)(*args, **kwargs)
+            create_response = self.create_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -213,7 +213,7 @@ class ChatCompletionWrapper:
 
         try:
             start = time.time()
-            create_response = await cast(Callable[..., Any], self.acreate_fn)(*args, **kwargs)
+            create_response = await self.acreate_fn(*args, **kwargs)
 
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -415,7 +415,7 @@ class ResponseWrapper:
 
         try:
             start = time.time()
-            create_response = cast(Callable[..., Any], self.create_fn)(*args, **kwargs)
+            create_response = self.create_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -467,7 +467,7 @@ class ResponseWrapper:
 
         try:
             start = time.time()
-            create_response = await cast(Callable[..., Any], self.acreate_fn)(*args, **kwargs)
+            create_response = await self.acreate_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -656,7 +656,7 @@ class BaseWrapper(abc.ABC):
         with start_span(
             **merge_dicts(dict(name=self._name, span_attributes={"type": SpanTypeAttribute.LLM}), params)
         ) as span:
-            create_response = cast(Callable[..., Any], self._create_fn)(*args, **kwargs)
+            create_response = self._create_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -673,7 +673,7 @@ class BaseWrapper(abc.ABC):
         with start_span(
             **merge_dicts(dict(name=self._name, span_attributes={"type": SpanTypeAttribute.LLM}), params)
         ) as span:
-            create_response = await cast(Callable[..., Any], self._acreate_fn)(*args, **kwargs)
+            create_response = await self._acreate_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)

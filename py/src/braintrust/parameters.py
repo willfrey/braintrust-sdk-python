@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError as JSONSchemaValidationError
@@ -151,7 +151,7 @@ def _resolve_local_json_schema_refs(
 
 def _serialize_pydantic_parameter_schema(schema: Any) -> dict[str, Any]:
     schema_json = _pydantic_to_json_schema(schema)
-    schema_json = cast(dict[str, Any], _resolve_local_json_schema_refs(schema_json, schema_json))
+    schema_json = _resolve_local_json_schema_refs(schema_json, schema_json)
     schema_json.pop("$defs", None)
     schema_json.pop("definitions", None)
     fields = _get_pydantic_fields(schema)
@@ -279,29 +279,28 @@ def _validate_local_parameters(
             elif schema is None:
                 result[name] = value
             elif _is_pydantic_model(schema):
-                schema_cls = cast(Any, schema)
                 fields = _get_pydantic_fields(schema)
                 if len(fields) == 1 and "value" in fields:
                     if value is None:
                         try:
-                            default_instance = schema_cls()
+                            default_instance = schema()
                             result[name] = default_instance.value
                         except Exception as exc:
                             raise ValueError(f"Parameter '{name}' is required") from exc
                     elif hasattr(schema, "parse_obj"):
-                        result[name] = schema_cls.parse_obj({"value": value}).value
+                        result[name] = schema.parse_obj({"value": value}).value
                     else:
-                        result[name] = schema_cls.model_validate({"value": value}).value
+                        result[name] = schema.model_validate({"value": value}).value
                 else:
                     if value is None:
                         try:
-                            result[name] = schema_cls()
+                            result[name] = schema()
                         except Exception as exc:
                             raise ValueError(f"Parameter '{name}' is required") from exc
                     elif hasattr(schema, "parse_obj"):
-                        result[name] = schema_cls.parse_obj(value)
+                        result[name] = schema.parse_obj(value)
                     else:
-                        result[name] = schema_cls.model_validate(value)
+                        result[name] = schema.model_validate(value)
             else:
                 result[name] = value
         except JSONSchemaValidationError as exc:
@@ -417,10 +416,10 @@ def parameters_to_json_schema(parameters: EvalParameters) -> ParametersSchema:
                 property_schema["description"] = schema["description"]
             properties[name] = property_schema
         elif _is_model_parameter(schema):
-            property_schema = cast(dict[str, Any], {
-                "type": "string",
-                "x-bt-type": "model",
-            })
+            property_schema = {
+                    "type": "string",
+                    "x-bt-type": "model",
+                }
             if "default" in schema:
                 property_schema["default"] = schema.get("default")
             if schema.get("description") is not None:
