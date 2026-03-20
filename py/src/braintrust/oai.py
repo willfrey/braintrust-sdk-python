@@ -4,7 +4,7 @@ import re
 import time
 import warnings
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from wrapt import wrap_function_wrapper
 
@@ -54,7 +54,7 @@ class AsyncResponseWrapper:
         return getattr(self._response, name)
 
     @property
-    def __class__(self):  # type: ignore
+    def __class__(self):
         return self._response.__class__
 
     def __str__(self) -> str:
@@ -160,7 +160,7 @@ class ChatCompletionWrapper:
 
         try:
             start = time.time()
-            create_response = self.create_fn(*args, **kwargs)
+            create_response = cast(Callable[..., Any], self.create_fn)(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -213,7 +213,7 @@ class ChatCompletionWrapper:
 
         try:
             start = time.time()
-            create_response = await self.acreate_fn(*args, **kwargs)
+            create_response = await cast(Callable[..., Any], self.acreate_fn)(*args, **kwargs)
 
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -415,7 +415,7 @@ class ResponseWrapper:
 
         try:
             start = time.time()
-            create_response = self.create_fn(*args, **kwargs)
+            create_response = cast(Callable[..., Any], self.create_fn)(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -467,7 +467,7 @@ class ResponseWrapper:
 
         try:
             start = time.time()
-            create_response = await self.acreate_fn(*args, **kwargs)
+            create_response = await cast(Callable[..., Any], self.acreate_fn)(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -656,7 +656,7 @@ class BaseWrapper(abc.ABC):
         with start_span(
             **merge_dicts(dict(name=self._name, span_attributes={"type": SpanTypeAttribute.LLM}), params)
         ) as span:
-            create_response = self._create_fn(*args, **kwargs)
+            create_response = cast(Callable[..., Any], self._create_fn)(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -673,7 +673,7 @@ class BaseWrapper(abc.ABC):
         with start_span(
             **merge_dicts(dict(name=self._name, span_attributes={"type": SpanTypeAttribute.LLM}), params)
         ) as span:
-            create_response = await self._acreate_fn(*args, **kwargs)
+            create_response = await cast(Callable[..., Any], self._acreate_fn)(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
                 log_headers(create_response, span)
@@ -837,6 +837,7 @@ class ChatV1Wrapper(NamedWrapper):
         super().__init__(chat)
 
         import openai
+        import openai.resources.chat.completions  # ensure submodule is imported
 
         if type(chat.completions) == openai.resources.chat.completions.AsyncCompletions:
             self.completions = AsyncCompletionsV1Wrapper(chat.completions)
@@ -925,6 +926,9 @@ class OpenAIV1Wrapper(NamedWrapper):
     def __init__(self, openai: Any):
         super().__init__(openai)
         import openai as oai
+        import openai.resources.embeddings
+        import openai.resources.moderations
+        import openai.resources.responses.responses
 
         self.chat = ChatV1Wrapper(openai.chat)
 
@@ -1106,7 +1110,7 @@ def patch_openai() -> bool:
 
         wrap_function_wrapper("openai", "OpenAI.__init__", _openai_init_wrapper)
         wrap_function_wrapper("openai", "AsyncOpenAI.__init__", _openai_init_wrapper)
-        openai.__braintrust_wrapped__ = True
+        setattr(openai, "__braintrust_wrapped__", True)
         return True
 
     except ImportError:

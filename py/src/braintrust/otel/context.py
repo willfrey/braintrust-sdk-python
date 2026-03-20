@@ -1,7 +1,7 @@
 """Unified context management using OTEL's built-in context."""
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from braintrust.context import ParentSpanIds, SpanInfo
 from braintrust.logger import Span
@@ -39,7 +39,8 @@ class ContextManager:
             # If there's a BT span stored AND the current OTEL span is a NonRecordingSpan
             # (which means it's our BT->OTEL wrapper), then return BT span info
             if bt_span and isinstance(current_span, trace.NonRecordingSpan):
-                return SpanInfo(trace_id=bt_span.root_span_id, span_id=bt_span.span_id, span_object=bt_span)
+                bt_span_any = cast(Any, bt_span)
+                return SpanInfo(trace_id=bt_span_any.root_span_id, span_id=bt_span_any.span_id, span_object=bt_span)
             else:
                 # Return OTEL span info - this is a real OTEL span, not our wrapper
                 otel_trace_id = format(span_context.trace_id, "032x")
@@ -55,22 +56,23 @@ class ContextManager:
             # This is an OTEL span - it will manage its own context
             return None
         else:
+            bt_span = cast(Any, span)
             try:
-                trace_id_int = int(span.root_span_id, 16)
+                trace_id_int = int(bt_span.root_span_id, 16)
             except ValueError:
-                log.debug(f"Invalid root_span_id: {span.root_span_id}")
+                log.debug(f"Invalid root_span_id: {bt_span.root_span_id}")
                 return None
 
             try:
-                span_id_int = int(span.span_id, 16)
+                span_id_int = int(bt_span.span_id, 16)
             except ValueError:
-                log.debug(f"Invalid span_id: {span.span_id}")
+                log.debug(f"Invalid span_id: {bt_span.span_id}")
                 return None
 
             # This is a BT span - store it in OTEL context AND set as current OTEL span
             # First store the BT span
             ctx = context.set_value("braintrust_span", span)
-            parent_value = span._get_otel_parent()
+            parent_value = bt_span._get_otel_parent()
             ctx = context.set_value("braintrust.parent", parent_value, ctx)
 
             otel_span_context = SpanContext(

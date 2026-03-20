@@ -1,12 +1,12 @@
 import dataclasses
 import json
 from collections.abc import Callable, Sequence
-from typing import Any, overload
+from typing import Any, cast, overload
 
 import slugify
 from braintrust.logger import api_conn, app_conn, login
 
-from .framework import _is_lazy_load, bcolors  # type: ignore
+from .framework import _is_lazy_load, bcolors
 from .generated_types import (
     ChatCompletionMessageParam,
     IfExists,
@@ -187,8 +187,9 @@ class ToolBuilder:
         """
         self._task_counter += 1
         if not name:
-            if handler.__name__ and handler.__name__ != "<lambda>":
-                name = handler.__name__
+            handler_name = getattr(handler, "__name__", "")
+            if handler_name and handler_name != "<lambda>":
+                name = handler_name
             else:
                 name = f"Tool {self._task_counter}"
         assert name is not None
@@ -300,7 +301,7 @@ class PromptBuilder:
                 tool_functions.append(tool)
             else:
                 # ToolFunctionDefinition
-                raw_tools.append(tool)
+                raw_tools.append(cast(ToolFunctionDefinition, tool))
 
         prompt_data: PromptData = {}
         if messages is not None:
@@ -477,9 +478,10 @@ class ScorerBuilder:
             choice_scores: The scores for each choice. Required.
         """
         self._task_counter += 1
-        if name is None or len(name) == 0:
-            if handler and handler.__name__ and handler.__name__ != "<lambda>":
-                name = handler.__name__
+        if not name:
+            handler_name = getattr(handler, "__name__", "") if handler else ""
+            if handler_name and handler_name != "<lambda>":
+                name = handler_name
             else:
                 name = f"Scorer {self._task_counter}"
         if slug is None or len(slug) == 0:

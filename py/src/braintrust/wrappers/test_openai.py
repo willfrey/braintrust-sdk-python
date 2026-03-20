@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Any, cast
 
 import braintrust
 import openai
@@ -47,11 +48,11 @@ def test_tracing_processor_sets_current_span(memory_logger):
 
     with braintrust.start_span(name="parent-span") as parent_span:
         assert braintrust.current_span() == parent_span
-        processor.on_trace_start(trace)
+        processor.on_trace_start(cast(Any, trace))
         created_span = processor._spans[trace.trace_id]
         assert braintrust.current_span() == created_span
 
-        processor.on_trace_end(trace)
+        processor.on_trace_end(cast(Any, trace))
         assert braintrust.current_span() == parent_span
 
     spans = memory_logger.pop()
@@ -109,7 +110,7 @@ def test_openai_responses_metrics(memory_logger):
     assert unwrapped_response
     assert unwrapped_response.output
     assert len(unwrapped_response.output) > 0
-    unwrapped_content = unwrapped_response.output[0].content[0].text
+    unwrapped_content = cast(Any, unwrapped_response.output[0]).content[0].text
 
     # No spans should be generated with unwrapped client
     assert not memory_logger.pop()
@@ -128,7 +129,7 @@ def test_openai_responses_metrics(memory_logger):
     # Extract content from output field
     assert response.output
     assert len(response.output) > 0
-    wrapped_content = response.output[0].content[0].text
+    wrapped_content = cast(Any, response.output[0]).content[0].text
 
     # Both should contain a numeric response for the math question
     assert "24" in unwrapped_content or "twenty-four" in unwrapped_content.lower()
@@ -479,7 +480,7 @@ def test_openai_chat_with_system_prompt(memory_logger):
 
         assert response
         assert response.choices
-        assert "24" in response.choices[0].message.content
+        assert "24" in cast(str, response.choices[0].message.content)
 
         if not is_wrapped:
             assert not memory_logger.pop()
@@ -620,7 +621,7 @@ async def test_openai_responses_async(memory_logger):
         assert len(resp.output) > 0
 
         # Extract the text from the output
-        content = resp.output[0].content[0].text
+        content = cast(Any, resp.output[0]).content[0].text
 
         # Verify response contains correct answer
         assert "24" in content or "twenty-four" in content.lower()
@@ -793,7 +794,7 @@ async def test_openai_chat_async_with_system_prompt(memory_logger):
 
         assert response
         assert response.choices
-        assert "24" in response.choices[0].message.content
+        assert "24" in cast(str, response.choices[0].message.content)
 
         if not is_wrapped:
             assert not memory_logger.pop()
@@ -1000,7 +1001,7 @@ async def test_openai_response_streaming_async(memory_logger):
         stream = await client.responses.create(model=TEST_MODEL, input="What's 12 + 12?", stream=True)
 
         chunks = []
-        async for chunk in stream:
+        async for chunk in cast(Any, stream):
             if chunk.type == "response.output_text.delta":
                 chunks.append(chunk.delta)
         end = time.time()
@@ -1133,7 +1134,7 @@ def test_openai_responses_not_given_filtering(memory_logger):
     assert response
     assert response.output
     assert len(response.output) > 0
-    content = response.output[0].content[0].text
+    content = cast(Any, response.output[0]).content[0].text
     assert "24" in content or "twenty-four" in content.lower()
 
     # Check the logged span
@@ -1225,7 +1226,7 @@ def test_openai_responses_with_raw_response_create(memory_logger):
         instructions="Just the number please",
     )
     assert raw.headers  # HTTP response headers are accessible
-    response = raw.parse()
+    response = cast(Any, raw.parse())
     assert response.output
     content = response.output[0].content[0].text
     assert "24" in content or "twenty-four" in content.lower()
@@ -1245,7 +1246,7 @@ def test_openai_responses_with_raw_response_create(memory_logger):
     assert raw.headers
     response = raw.parse()
     assert response.output
-    content = response.output[0].content[0].text
+    content = cast(Any, response.output[0]).content[0].text
     assert "24" in content or "twenty-four" in content.lower()
 
     # A span must have been recorded with correct metrics and metadata.
@@ -1276,7 +1277,7 @@ def test_openai_responses_with_raw_response_create_stream(memory_logger):
     )
     assert raw.headers
     chunks = []
-    for chunk in raw.parse():
+    for chunk in cast(Any, raw.parse()):
         if chunk.type == "response.output_text.delta":
             chunks.append(chunk.delta)
     assert "24" in "".join(chunks) or "twenty-four" in "".join(chunks).lower()
@@ -1364,7 +1365,7 @@ async def test_openai_responses_with_raw_response_async(memory_logger):
         instructions="Just the number please",
     )
     assert raw.headers
-    response = raw.parse()
+    response = cast(Any, raw.parse())
     assert response.output
     content = response.output[0].content[0].text
     assert "24" in content or "twenty-four" in content.lower()
@@ -1382,7 +1383,7 @@ async def test_openai_responses_with_raw_response_async(memory_logger):
     assert raw.headers
     response = raw.parse()
     assert response.output
-    content = response.output[0].content[0].text
+    content = cast(Any, response.output[0]).content[0].text
     assert "24" in content or "twenty-four" in content.lower()
 
     spans = memory_logger.pop()
@@ -1412,7 +1413,7 @@ async def test_openai_responses_with_raw_response_create_stream_async(memory_log
     )
     assert raw.headers
     chunks = []
-    async for chunk in raw.parse():
+    async for chunk in cast(Any, raw.parse()):
         if chunk.type == "response.output_text.delta":
             chunks.append(chunk.delta)
     assert "24" in "".join(chunks) or "twenty-four" in "".join(chunks).lower()
@@ -1487,7 +1488,7 @@ def test_openai_parallel_tool_calls(memory_logger):
         for client in clients:
             start = time.time()
 
-            resp = client.chat.completions.create(
+            resp = cast(Any, client).chat.completions.create(
                 model=TEST_MODEL,
                 messages=[{"role": "user", "content": "What's the weather in New York and the time in Tokyo?"}],
                 tools=tools,
@@ -1498,7 +1499,7 @@ def test_openai_parallel_tool_calls(memory_logger):
 
             if stream:
                 # Consume the stream
-                for chunk in resp:  # type: ignore
+                for chunk in resp:
                     # Exhaust the stream
                     pass
 
@@ -1912,8 +1913,8 @@ def test_braintrust_tracing_processor_trace_metadata_logging(memory_logger):
     trace = MockTrace("test-trace", "Test Trace", {"conversation_id": "test-12345"})
 
     # Execute trace lifecycle
-    processor.on_trace_start(trace)
-    processor.on_trace_end(trace)
+    processor.on_trace_start(cast(Any, trace))
+    processor.on_trace_end(cast(Any, trace))
 
     # Verify metadata was logged to root span
     spans = memory_logger.pop()

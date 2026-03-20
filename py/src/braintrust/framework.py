@@ -20,6 +20,7 @@ from typing import (
     Optional,
     TypeVar,
     Union,
+    cast,
 )
 
 from tqdm.asyncio import tqdm as async_tqdm
@@ -131,7 +132,6 @@ class EvalResult(SerializableDataClass, Generic[Input, Output]):
     exc_info: str | None = None
 
 
-@dataclasses.dataclass
 class TaskProgressEvent(TypedDict):
     """Progress event that can be reported during task execution."""
 
@@ -610,14 +610,14 @@ def pluralize(n, singular, plural):
         return plural
 
 
-def report_failures(evaluator: Evaluator, failing_results: Iterable[EvalResult], verbose: bool, jsonl: bool) -> None:
+def report_failures(evaluator: Evaluator, failing_results: list[EvalResult], verbose: bool, jsonl: bool) -> None:
     eprint(
         f"{bcolors.FAIL}Evaluator {evaluator.eval_name} failed with {len(failing_results)} {pluralize(len(failing_results), 'error', 'errors')}{bcolors.ENDC}"
     )
 
-    errors = [
+    errors: list[str] = [
         (
-            result.exc_info
+            result.exc_info or ""
             if verbose or jsonl
             else "\n".join(traceback.format_exception_only(type(result.error), result.error))
         )
@@ -706,7 +706,7 @@ def _EvalCommon(
         project_name=name,
         data=data,
         task=task,
-        scores=scores,
+        scores=list(scores),
         experiment_name=experiment_name,
         trial_count=trial_count,
         metadata=metadata,
@@ -740,7 +740,7 @@ def _EvalCommon(
                 "Must specify a reporter object, not a name. Can only specify reporter names when running 'braintrust eval'"
             )
 
-        reporter = reporter or default_reporter
+        reporter = cast(Any, reporter or default_reporter)
 
         if base_experiment_name is None and isinstance(evaluator.data, BaseExperiment):
             base_experiment_name = evaluator.data.name
@@ -1167,7 +1167,7 @@ class DictEvalHooks(dict[str, Any]):
         expected: Any | None = None,
         trial_index: int = 0,
         tags: Sequence[str] | None = None,
-        report_progress: Callable[[TaskProgressEvent], None] = None,
+        report_progress: Optional[Callable[[TaskProgressEvent], None]] = None,
         parameters: ValidatedParameters | None = None,
     ):
         if metadata is not None:
@@ -1384,9 +1384,9 @@ async def _run_evaluator_internal_impl(
                         raise ValueError(
                             f"When returning an array of scores, each score must be a valid Score object. Got: {s}"
                         )
-                result = list(result)
+                result = cast(list[Score], list(result))
             elif is_score(result):
-                result = [result]
+                result = [cast(Score, result)]
             else:
                 result = [Score(name=name, score=result)]
 
@@ -1452,10 +1452,10 @@ async def _run_evaluator_internal_impl(
         )
 
         if experiment:
-            root_span = experiment.start_span(**base_event)
+            root_span = cast(Any, experiment).start_span(**base_event)
         else:
             # In most cases this will be a no-op span, but if the parent is set, it will use that ctx.
-            root_span = start_span(state=state, **base_event)
+            root_span = cast(Any, start_span)(state=state, **base_event)
 
         with root_span:
             try:
@@ -1464,8 +1464,15 @@ async def _run_evaluator_internal_impl(
                     if not stream:
                         return
                     stream(
-                        SSEProgressEvent(
-                            id=root_span.id, origin=origin, name=evaluator.eval_name, object_type="task", **event
+                        cast(
+                            Any,
+                            SSEProgressEvent(
+                                id=root_span.id,
+                                origin=cast(Any, origin),
+                                name=evaluator.eval_name,
+                                object_type="task",
+                                **event,
+                            ),
                         )
                     )
 
@@ -1473,9 +1480,9 @@ async def _run_evaluator_internal_impl(
                     metadata,
                     expected=datum.expected,
                     trial_index=trial_index,
-                    tags=tags,
+                    tags=cast(Any, tags),
                     report_progress=report_progress,
-                    parameters=resolved_evaluator_parameters,
+                    parameters=cast(Any, resolved_evaluator_parameters),
                 )
 
                 # Check if the task takes a hooks argument
@@ -1608,7 +1615,7 @@ async def _run_evaluator_internal_impl(
                     )
             except Exception as e:
                 exc_type, exc_value, tb = sys.exc_info()
-                root_span.log(error=stringify_exception(exc_type, exc_value, tb))
+                root_span.log(error=stringify_exception(cast(Any, exc_type), cast(Any, exc_value), tb))
 
                 error = e
                 # Python3.10 has a different set of arguments to format_exception than earlier versions,
@@ -1619,7 +1626,7 @@ async def _run_evaluator_internal_impl(
             input=datum.input,
             expected=datum.expected,
             metadata=metadata,
-            tags=tags,
+            tags=cast(Any, tags),
             output=output,
             scores={
                 **(
@@ -1702,7 +1709,7 @@ async def _run_evaluator_internal_impl(
 
 
 def build_local_summary(
-    evaluator: Evaluator[Input, Output], results: list[EvalResultWithSummary[Input, Output]]
+    evaluator: Evaluator[Input, Output], results: list[EvalResult[Input, Output]]
 ) -> ExperimentSummary:
     scores_by_name = defaultdict(lambda: (0, 0))
     for result in results:

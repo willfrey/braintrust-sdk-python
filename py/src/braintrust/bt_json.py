@@ -245,11 +245,11 @@ def bt_dumps(obj: Any, encoder: Encoder | None = _json_encoder, **kwargs: Any) -
         # Try orjson first for better performance
         try:
             # pylint: disable=no-member  # orjson is a C extension, pylint can't introspect it
-            return orjson.dumps(  # type: ignore[possibly-unbound]
+            return orjson.dumps(
                 obj,
                 default=encoder.orjson if encoder else None,
                 # options match json.dumps behavior for bc
-                option=orjson.OPT_SORT_KEYS | orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_NON_STR_KEYS,  # type: ignore[possibly-unbound]
+                option=orjson.OPT_SORT_KEYS | orjson.OPT_SERIALIZE_NUMPY | orjson.OPT_NON_STR_KEYS,
             ).decode("utf-8")
         except Exception:
             # If orjson fails, fall back to standard json
@@ -278,7 +278,7 @@ def bt_loads(s: str, **kwargs) -> Any:
         # Try orjson first for better performance
         try:
             # pylint: disable=no-member  # orjson is a C extension, pylint can't introspect it
-            return orjson.loads(s)  # type: ignore[possibly-unbound]
+            return orjson.loads(s)
         except Exception:
             # If orjson fails, fall back to standard json
             pass

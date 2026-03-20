@@ -2,7 +2,7 @@ import asyncio
 import json
 import sys
 import textwrap
-from typing import Any
+from typing import Any, cast
 
 
 try:
@@ -183,17 +183,21 @@ async def run_eval(request: Request) -> JSONResponse | StreamingResponse:
 
     async def task(input: Any, hooks: EvalHooks[Any]):
         task_hooks = hooks if validated_parameters is None else _ParameterOverrideHooks(hooks, validated_parameters)
+        task_hooks_typed = cast(EvalHooks[Any], task_hooks)
         if bt_iscoroutinefunction(evaluator.task):
-            result = await evaluator.task(input, task_hooks)
+            result = await cast(Any, evaluator.task)(input, task_hooks_typed)
         else:
-            result = evaluator.task(input, task_hooks)
+            result = cast(Any, evaluator.task)(input, task_hooks_typed)
         task_hooks.report_progress(
-            {
-                "format": "code",
-                "output_type": "completion",
-                "event": "json_delta",
-                "data": json.dumps(result),
-            }
+            cast(
+                Any,
+                {
+                    "format": "code",
+                    "output_type": "completion",
+                    "event": "json_delta",
+                    "data": json.dumps(result),
+                },
+            )
         )
         return result
 
@@ -212,7 +216,7 @@ async def run_eval(request: Request) -> JSONResponse | StreamingResponse:
 
     parent = eval_data.get("parent")
     if parent:
-        parent = parse_parent(parent)
+        parent = parse_parent(cast(str | dict | None, parent))
 
     eval_kwargs = {
         k: v for (k, v) in evaluator.__dict__.items() if k not in ["eval_name", "project_name", "parameter_values"]
@@ -222,14 +226,14 @@ async def run_eval(request: Request) -> JSONResponse | StreamingResponse:
 
     try:
         eval_task = asyncio.create_task(
-            EvalAsync(
+            cast(Any, EvalAsync)(
                 name=eval_data["name"],
                 **{
                     **eval_kwargs,
                     "state": state,
                     "scores": evaluator.scores
                     + [
-                        make_scorer(state, score["name"], score["function_id"], ctx.project_id)
+                        make_scorer(state, cast(str, score["name"]), cast(Any, score["function_id"]), ctx.project_id)
                         for score in eval_data.get("scores", [])
                     ],
                     "stream": stream_fn,
@@ -310,8 +314,8 @@ def create_app(evaluators: list[Evaluator[Any, Any]], org_name: str | None = Non
 
     app = Starlette(routes=routes)
     # Add middlewares in reverse order (last added is executed first)
-    app.add_middleware(CheckAuthorizedMiddleware, allowed_org_name=org_name)
-    app.add_middleware(AuthorizationMiddleware)
+    cast(Any, app).add_middleware(CheckAuthorizedMiddleware, allowed_org_name=org_name)
+    cast(Any, app).add_middleware(AuthorizationMiddleware)
     app.add_middleware(create_cors_middleware())
 
     return app

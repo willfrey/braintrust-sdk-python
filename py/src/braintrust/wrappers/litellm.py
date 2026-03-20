@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import AsyncGenerator, Callable, Generator
 from types import TracebackType
-from typing import Any
+from typing import Any, cast
 
 from braintrust.logger import Span, start_span
 from braintrust.span_types import SpanTypeAttribute
@@ -145,7 +145,7 @@ class CompletionWrapper:
 
         try:
             start = time.time()
-            completion_response = self.completion_fn(*args, **kwargs)
+            completion_response = cast(Any, self.completion_fn)(*args, **kwargs)
             # if hasattr(completion_response, "parse"):
             #     raw_response = completion_response.parse()
             #     log_headers(completion_response, span)
@@ -175,7 +175,7 @@ class CompletionWrapper:
 
         try:
             start = time.time()
-            completion_response = await self.acompletion_fn(*args, **kwargs)
+            completion_response = await cast(Any, self.acompletion_fn)(*args, **kwargs)
 
             # if hasattr(completion_response, "parse"):
             #     raw_response = completion_response.parse()
@@ -323,7 +323,7 @@ class ResponsesWrapper:
 
         try:
             start = time.time()
-            response = self.responses_fn(*args, **kwargs)
+            response = cast(Any, self.responses_fn)(*args, **kwargs)
 
             if is_streaming:
                 should_end = False
@@ -346,7 +346,7 @@ class ResponsesWrapper:
 
         try:
             start = time.time()
-            response = await self.aresponses_fn(*args, **kwargs)
+            response = await cast(Any, self.aresponses_fn)(*args, **kwargs)
 
             if is_streaming:
                 should_end = False

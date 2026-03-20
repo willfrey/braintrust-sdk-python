@@ -360,7 +360,7 @@ def _aggregate_agent_chunks(chunks: list[Any]) -> dict[str, Any]:
 
         elif event == "RunContent":
             if hasattr(chunk, "content") and chunk.content:
-                aggregated["content"] += str(chunk.content)  # type: ignore
+                aggregated["content"] += str(chunk.content)
             if hasattr(chunk, "reasoning_content") and chunk.reasoning_content:
                 aggregated["reasoning_content"] += chunk.reasoning_content
             if hasattr(chunk, "citations"):
@@ -379,7 +379,7 @@ def _aggregate_agent_chunks(chunks: list[Any]) -> dict[str, Any]:
 
         elif event == "ToolCallStarted":
             if hasattr(chunk, "tool_call"):
-                aggregated["tool_calls"].append(  # type:ignore
+                aggregated["tool_calls"].append(
                     {
                         "id": getattr(chunk.tool_call, "id", None),
                         "type": "function",

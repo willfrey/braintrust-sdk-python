@@ -5,6 +5,7 @@ import base64
 import dataclasses
 import json
 from enum import Enum
+from typing import Any, cast
 
 from .span_identifier_v3 import (
     SpanComponentsV3,
@@ -123,7 +124,7 @@ class SpanComponentsV4:
                 hex_bytes, is_hex = None, False
 
             if is_hex:
-                hex_entries.append(bytes([field_id.value]) + hex_bytes)
+                hex_entries.append(bytes([field_id.value]) + cast(bytes, hex_bytes))
             else:
                 json_obj[_FIELDS_ID_TO_NAME[field_id]] = orig_val
 
@@ -230,7 +231,7 @@ class SpanComponentsV4:
             **json_obj,
             "object_type": SpanObjectTypeV3(json_obj["object_type"]),
         }
-        return SpanComponentsV4(**kwargs)
+        return SpanComponentsV4(**cast(Any, kwargs))
 
 
 def parse_parent(parent: str | dict | None) -> str | None:
@@ -245,7 +246,7 @@ def parse_parent(parent: str | dict | None) -> str | None:
             "project_logs": SpanObjectTypeV3.PROJECT_LOGS,
         }
 
-        object_type = object_type_map.get(parent.get("object_type"))
+        object_type = object_type_map.get(cast(str, parent.get("object_type")))
         if not object_type:
             raise ValueError(f"Invalid object_type: {parent.get('object_type')}")
 
@@ -275,6 +276,6 @@ def parse_parent(parent: str | dict | None) -> str | None:
         if "propagated_event" in parent:
             kwargs["propagated_event"] = parent.get("propagated_event")
 
-        return SpanComponentsV4(**kwargs).to_str()
+        return SpanComponentsV4(**cast(Any, kwargs)).to_str()
     else:
         return None

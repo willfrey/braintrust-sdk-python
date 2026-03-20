@@ -1,12 +1,12 @@
 import dataclasses
 import json
-from typing import Union, get_origin
+from typing import Any, Union, cast, get_origin
 
 
 class SerializableDataClass:
     def as_dict(self):
         """Serialize the object to a dictionary."""
-        return dataclasses.asdict(self)
+        return dataclasses.asdict(cast(Any, self))
 
     def as_json(self, **kwargs):
         """Serialize the object to JSON."""
@@ -33,14 +33,15 @@ class SerializableDataClass:
             if k not in fields:
                 continue
 
+            field_type = cast(Any, fields[k].type)
             if (
                 isinstance(v, dict)
-                and isinstance(fields[k].type, type)
-                and issubclass(fields[k].type, SerializableDataClass)
+                and isinstance(field_type, type)
+                and issubclass(field_type, SerializableDataClass)
             ):
-                filtered[k] = fields[k].type.from_dict_deep(v)
-            elif get_origin(fields[k].type) == Union:
-                for t in fields[k].type.__args__:
+                filtered[k] = field_type.from_dict_deep(v)
+            elif get_origin(field_type) == Union:
+                for t in field_type.__args__:
                     if t == type(None) and v is None:
                         filtered[k] = None
                         break
@@ -54,12 +55,12 @@ class SerializableDataClass:
                     filtered[k] = v
             elif (
                 isinstance(v, list)
-                and get_origin(fields[k].type) == list
-                and len(fields[k].type.__args__) == 1
-                and isinstance(fields[k].type.__args__[0], type)
-                and issubclass(fields[k].type.__args__[0], SerializableDataClass)
+                and get_origin(field_type) == list
+                and len(field_type.__args__) == 1
+                and isinstance(field_type.__args__[0], type)
+                and issubclass(field_type.__args__[0], SerializableDataClass)
             ):
-                filtered[k] = [fields[k].type.__args__[0].from_dict_deep(i) for i in v]
+                filtered[k] = [field_type.__args__[0].from_dict_deep(i) for i in v]
             else:
                 filtered[k] = v
         return cls(**filtered)

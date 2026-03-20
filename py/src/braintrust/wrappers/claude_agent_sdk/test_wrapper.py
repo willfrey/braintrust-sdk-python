@@ -289,7 +289,7 @@ async def test_query_async_iterable(memory_logger, cassette_name, input_factory,
 
     wrapped_client_class = _create_client_wrapper_class(FakeClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         AssistantMessage(content=[TextBlock("done")]),
         ResultMessage(),
     ]
@@ -537,7 +537,7 @@ async def test_delegated_subagent_llm_and_tool_spans_nest_under_task_span(memory
 
     wrapped_client_class = _create_client_wrapper_class(FakeClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         AssistantMessage(
             content=[
                 ToolUseBlock(
@@ -618,7 +618,7 @@ async def test_multiple_subagent_orchestration_keeps_outer_agent_tool_calls_outs
 
     wrapped_client_class = _create_client_wrapper_class(FakeClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         AssistantMessage(
             content=[
                 TextBlock("Launching the first delegated agent."),
@@ -754,7 +754,7 @@ async def test_relay_user_messages_between_parallel_agent_calls_do_not_split_llm
 
     wrapped_client_class = _create_client_wrapper_class(FakeClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         # Orchestrator responds with thinking + text + first Agent call
         AssistantMessage(
             content=[
@@ -893,7 +893,7 @@ async def test_agent_tool_spans_encapsulate_child_task_spans(memory_logger):
 
     wrapped_client_class = _create_client_wrapper_class(FakeClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         # Orchestrator responds with text + first Agent call
         AssistantMessage(
             content=[
@@ -1209,7 +1209,7 @@ async def test_receive_response_suppresses_cancelled_error_after_messages(memory
 
     wrapped_client_class = _create_client_wrapper_class(FakeCancelledClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         AssistantMessage(content=[TextBlock("The answer is 42.")]),
         ResultMessage(),
     ]
@@ -1251,7 +1251,7 @@ async def test_receive_response_suppresses_cancelled_error_mid_stream(memory_log
 
     wrapped_client_class = _create_client_wrapper_class(FakeCancelledMidStreamClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         AssistantMessage(content=[TextBlock("Partial answer.")]),
         # Second message never arrives — CancelledError fires instead.
         AssistantMessage(content=[TextBlock("This should not be received.")]),
@@ -1289,7 +1289,7 @@ async def test_genuine_task_cancel_propagates_after_receive_response(memory_logg
 
     wrapped_client_class = _create_client_wrapper_class(FakeCancelledClaudeSDKClient)
     client = wrapped_client_class()
-    client._WrappedClaudeSDKClient__client.messages = [  # type: ignore[attr-defined]
+    client._WrappedClaudeSDKClient__client.messages = [
         AssistantMessage(content=[TextBlock("Hello.")]),
         ResultMessage(),
     ]

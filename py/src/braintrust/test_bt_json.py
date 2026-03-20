@@ -3,7 +3,7 @@
 # pyright: reportPrivateUsage=false
 import json
 import warnings
-from typing import Any
+from typing import Any, cast
 from unittest import TestCase
 
 import pytest
@@ -25,7 +25,7 @@ class TestBTJson(TestCase):
 
     def test_deep_copy_mutation_independence(self):
         """Test that mutating the copy doesn't affect the original (true dereferencing)."""
-        original = {
+        original: dict[str, Any] = {
             "top_level": "value",
             "nested_dict": {"inner": "data", "deep": {"level": 3}},
             "nested_list": [1, 2, [3, 4]],
@@ -47,7 +47,7 @@ class TestBTJson(TestCase):
         self.assertEqual(original["nested_dict"]["inner"], "data")
         self.assertEqual(original["nested_dict"]["deep"]["level"], 3)
         self.assertEqual(original["nested_list"][0], 1)
-        self.assertEqual(original["nested_list"][2][0], 3)
+        self.assertEqual(cast(list, original["nested_list"])[2][0], 3)
         self.assertEqual(original["nested_in_list"][0]["key"], "val")
 
         # Add new keys to copy
@@ -194,8 +194,8 @@ class TestBTJson(TestCase):
     def test_deep_copy_exactly_max_depth(self):
         """Test behavior at exactly MAX_DEPTH (200)."""
         # Create nested structure at depth 199 (just under limit)
-        nested = {"level": 0}
-        current = nested
+        nested: dict[str, Any] = {"level": 0}
+        current: dict[str, Any] = nested
         for i in range(1, 199):
             current["child"] = {"level": i}
             current = current["child"]
@@ -217,8 +217,8 @@ class TestBTJson(TestCase):
     def test_deep_copy_exceeds_max_depth(self):
         """Test behavior exceeding MAX_DEPTH (200)."""
         # Create nested structure at depth 201 (exceeds limit)
-        nested = {"level": 0}
-        current = nested
+        nested: dict[str, Any] = {"level": 0}
+        current: dict[str, Any] = nested
         for i in range(1, 201):
             current["child"] = {"level": i}
             current = current["child"]
@@ -381,7 +381,7 @@ class TestBTJsonAttachments(TestCase):
             "filename": "readonly.txt",
             "content_type": "text/plain",
         }
-        readonly = ReadonlyAttachment(reference)
+        readonly = ReadonlyAttachment(cast(Any, reference))
         result_readonly = _to_bt_safe(readonly)
         self.assertEqual(result_readonly, reference)
         self.assertIsNot(result_readonly, readonly)
@@ -503,7 +503,7 @@ class TestBTJsonAttachments(TestCase):
             "filename": "readonly.txt",
             "content_type": "text/plain",
         }
-        readonly_attachment = ReadonlyAttachment(reference)
+        readonly_attachment = ReadonlyAttachment(cast(Any, reference))
 
         original = {
             "base": base_attachment,

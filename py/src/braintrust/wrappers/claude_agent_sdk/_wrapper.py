@@ -170,7 +170,7 @@ def _serialize_system_message(message: Any) -> dict[str, Any]:
 def _create_tool_wrapper_class(original_tool_class: Any) -> Any:
     """Creates a wrapper class for SdkMcpTool that re-enters active TOOL spans."""
 
-    class WrappedSdkMcpTool(original_tool_class):  # type: ignore[valid-type,misc]
+    class WrappedSdkMcpTool(original_tool_class):
         def __init__(
             self,
             name: Any,
@@ -180,9 +180,9 @@ def _create_tool_wrapper_class(original_tool_class: Any) -> Any:
             **kwargs: Any,
         ):
             wrapped_handler = _wrap_tool_handler(handler, name)
-            super().__init__(name, description, input_schema, wrapped_handler, **kwargs)  # type: ignore[call-arg]
+            super().__init__(name, description, input_schema, wrapped_handler, **kwargs)
 
-        __class_getitem__ = classmethod(lambda cls, params: cls)  # type: ignore[assignment]
+        __class_getitem__ = classmethod(lambda cls, params: cls)
 
     return WrappedSdkMcpTool
 
@@ -232,7 +232,7 @@ def _wrap_tool_handler(handler: Any, tool_name: Any) -> Any:
         finally:
             active_tool_span.release()
 
-    wrapped_handler._braintrust_wrapped = True  # type: ignore[attr-defined]
+    wrapped_handler._braintrust_wrapped = True
     return wrapped_handler
 
 

@@ -68,7 +68,7 @@ from .gitutil import get_past_n_ancestors, get_repo_info
 from .merge_row_batch import batch_items, merge_row_batch
 from .object import DEFAULT_IS_LEGACY_DATASET, ensure_dataset_record
 from .parameters import RemoteEvalParameters
-from .prompt import BRAINTRUST_PARAMS, ImagePart, PromptBlockData, PromptData, PromptMessage, PromptSchema, TextPart
+from .prompt import BRAINTRUST_PARAMS, ImagePart, PromptBlockData, PromptChatBlock, PromptCompletionBlock, PromptData, PromptMessage, PromptSchema, TextPart
 from .prompt_cache.disk_cache import DiskCache
 from .prompt_cache.lru_cache import LRUCache
 from .prompt_cache.parameters_cache import ParametersCache
@@ -915,6 +915,9 @@ class _BackgroundLogger(ABC):
     def flush(self, batch_size: int | None = None):
         pass
 
+    def set_masking_function(self, masking_function: "Callable[[Any], Any] | None") -> None:
+        pass
+
 
 class _MemoryBackgroundLogger(_BackgroundLogger):
     def __init__(self):
@@ -1036,7 +1039,7 @@ class _HTTPBackgroundLogger:
         except:
             self.queue_drop_logging_period = 60
 
-        self._queue_drop_logging_state = dict(lock=threading.Lock(), num_dropped=0, last_logged_timestamp=0)
+        self._queue_drop_logging_state: dict[str, Any] = dict(lock=threading.Lock(), num_dropped=0, last_logged_timestamp=0)
 
         try:
             self.failed_publish_payloads_dir = os.environ["BRAINTRUST_FAILED_PUBLISH_PAYLOADS_DIR"]
@@ -1667,7 +1670,7 @@ def init(
     # pylint: disable=function-redefined
     def compute_metadata():
         state.login(org_name=org_name, api_key=api_key, app_url=app_url)
-        args = {
+        args: dict[str, Any] = {
             "project_name": project,
             "project_id": project_id,
             "org_id": state.org_id,
@@ -1687,7 +1690,7 @@ def init(
             merged_git_metadata_settings = state.git_metadata_settings
             if git_metadata_settings is not None:
                 merged_git_metadata_settings = GitMetadataSettings.merge(
-                    merged_git_metadata_settings, git_metadata_settings
+                    cast(Any, merged_git_metadata_settings), git_metadata_settings
                 )
             repo_info_arg = get_repo_info(merged_git_metadata_settings)
 
@@ -1704,13 +1707,14 @@ def init(
         if dataset is not None:
             if isinstance(dataset, dict):
                 # Simple {"id": ..., "version": ...} dict
-                args["dataset_id"] = dataset["id"]
-                if "version" in dataset:
-                    args["dataset_version"] = dataset["version"]
+                dataset_dict = cast(dict[str, Any], dataset)
+                args["dataset_id"] = dataset_dict["id"]
+                if "version" in dataset_dict:
+                    args["dataset_version"] = dataset_dict["version"]
             else:
                 # Full Dataset object
-                args["dataset_id"] = dataset.id
-                args["dataset_version"] = dataset.version
+                args["dataset_id"] = cast(Any, dataset).id
+                args["dataset_version"] = cast(Any, dataset).version
 
         parameters_ref = _get_parameters_ref(parameters)
         if parameters_ref is not None:
@@ -1839,17 +1843,17 @@ def _compute_logger_metadata(project_name: str | None = None, project_id: str | 
         )
         resp_project = response["project"]
         return OrgProjectMetadata(
-            org_id=org_id,
+            org_id=cast(str, org_id),
             project=ObjectMetadata(id=resp_project["id"], name=resp_project["name"], full_info=resp_project),
         )
     elif project_name is None:
         response = _state.app_conn().get_json("api/project", {"id": project_id})
         return OrgProjectMetadata(
-            org_id=org_id, project=ObjectMetadata(id=project_id, name=response["name"], full_info=response)
+            org_id=cast(str, org_id), project=ObjectMetadata(id=project_id, name=response["name"], full_info=response)
         )
     else:
         return OrgProjectMetadata(
-            org_id=org_id, project=ObjectMetadata(id=project_id, name=project_name, full_info=dict())
+            org_id=cast(str, org_id), project=ObjectMetadata(id=project_id, name=project_name, full_info=dict())
         )
 
 
@@ -2583,9 +2587,9 @@ def traced(*span_args: Any, **span_kwargs: Any) -> Callable[[F], F]:
     # We determine if the decorator is invoked bare or with arguments by
     # checking if the first positional argument to the decorator is a callable.
     if len(span_args) == 1 and len(span_kwargs) == 0 and callable(span_args[0]):
-        return decorator(span_args[1:], span_kwargs, cast(F, span_args[0]))
+        return cast(Any, decorator)(span_args[1:], span_kwargs, span_args[0])
     else:
-        return cast(Callable[[F], F], partial(decorator, span_args, span_kwargs))
+        return cast(Any, partial(decorator, span_args, span_kwargs))
 
 
 def start_span(
@@ -3135,7 +3139,7 @@ class Attachment(BaseAttachment):
                 status["error_message"] = str(e)
 
             request_params = {
-                "key": self._reference["key"],
+                "key": cast(Any, self._reference)["key"],
                 "org_id": org_id,
                 "status": status,
             }
@@ -3683,7 +3687,8 @@ def _start_span_parent_args(
         arg_parent_object_id = LazyValue(compute_parent_object_id, use_mutex=False)
         if parent_components.row_id:
             arg_parent_span_ids = ParentSpanIds(
-                span_id=parent_components.span_id, root_span_id=parent_components.root_span_id
+                span_id=cast(str, parent_components.span_id),
+                root_span_id=cast(str, parent_components.root_span_id),
             )
         else:
             arg_parent_span_ids = None
@@ -3736,14 +3741,17 @@ class ExperimentDatasetIterator:
                 continue
 
             output, expected = value.get("output"), value.get("expected")
-            ret: _ExperimentDatasetEvent = {
-                "input": value.get("input"),
-                "expected": expected if expected is not None else output,
-                "tags": value.get("tags"),
-                "metadata": value.get("metadata"),
-                "id": value["id"],
-                "_xact_id": value["_xact_id"],
-            }
+            ret: _ExperimentDatasetEvent = cast(
+                Any,
+                {
+                    "input": value.get("input"),
+                    "expected": expected if expected is not None else output,
+                    "tags": value.get("tags"),
+                    "metadata": value.get("metadata"),
+                    "id": value["id"],
+                    "_xact_id": value["_xact_id"],
+                },
+            )
             return ret
 
 
@@ -3977,7 +3985,7 @@ class Experiment(ObjectFetcher[ExperimentEvent], Exportable):
         self.flush()
 
         state = self._get_state()
-        project_url = f"{state.app_public_url}/app/{encode_uri_component(state.org_name)}/p/{encode_uri_component(self.project.name)}"
+        project_url = f"{state.app_public_url}/app/{encode_uri_component(cast(str, state.org_name))}/p/{encode_uri_component(self.project.name)}"
         experiment_url = f"{project_url}/experiments/{encode_uri_component(self.name)}"
 
         score_summary = {}
@@ -4820,7 +4828,7 @@ class Dataset(ObjectFetcher[DatasetEvent]):
         # includes the new experiment.
         self.flush()
         state = self._get_state()
-        project_url = f"{state.app_public_url}/app/{encode_uri_component(state.org_name)}/p/{encode_uri_component(self.project.name)}"
+        project_url = f"{state.app_public_url}/app/{encode_uri_component(cast(str, state.org_name))}/p/{encode_uri_component(self.project.name)}"
         dataset_url = f"{project_url}/datasets/{encode_uri_component(self.name)}"
 
         data_summary = None
@@ -4929,7 +4937,7 @@ def render_message(render: Callable[[str], str], message: PromptMessage):
 
 def _create_custom_render():
     def _get_key(key: str, scopes: list[dict[str, Any]], warn: bool) -> Any:
-        thing = chevron.renderer._get_key(key, scopes, warn)  # type: ignore
+        thing = chevron.renderer._get_key(key, scopes, warn)
         if isinstance(thing, str):
             return thing
         return json.dumps(thing)
@@ -4962,9 +4970,9 @@ def render_templated_object(obj: Any, args: Any) -> Any:
     if isinstance(obj, str):
         return render_mustache(obj, data=args, renderer=_custom_render, strict=strict)
     elif isinstance(obj, list):
-        return [render_templated_object(item, args) for item in obj]  # type: ignore
+        return [render_templated_object(item, args) for item in obj]
     elif isinstance(obj, dict):
-        return {str(k): render_templated_object(v, args) for k, v in obj.items()}  # type: ignore
+        return {str(k): render_templated_object(v, args) for k, v in obj.items()}
     return obj
 
 
@@ -5059,7 +5067,7 @@ class Prompt:
 
     @property
     def id(self) -> str:
-        return self._lazy_metadata.get().id
+        return cast(str, self._lazy_metadata.get().id)
 
     @property
     def name(self) -> str:
@@ -5075,11 +5083,11 @@ class Prompt:
 
     @property
     def version(self) -> str:
-        return self._lazy_metadata.get()._xact_id
+        return cast(str, self._lazy_metadata.get()._xact_id)
 
     @property
     def options(self) -> PromptOptions:
-        return self._lazy_metadata.get().prompt_data.options or {}
+        return cast(Any, self._lazy_metadata.get().prompt_data.options or {})
 
     # Capture all metadata attributes which aren't covered by existing methods.
     def __getattr__(self, name: str) -> Any:
@@ -5125,9 +5133,9 @@ class Prompt:
         if not self.prompt:
             raise ValueError("Empty prompt")
 
-        if self.prompt.type == "completion":
+        if isinstance(self.prompt, PromptCompletionBlock):
             ret["prompt"] = render_mustache(self.prompt.content, data=build_args, strict=strict)
-        elif self.prompt.type == "chat":
+        elif isinstance(self.prompt, PromptChatBlock):
 
             def render(template: str):
                 return render_mustache(template, data=build_args, strict=strict)
@@ -5141,7 +5149,7 @@ class Prompt:
 
     def _make_iter_list(self) -> Sequence[str]:
         meta_keys = list(self.options.keys())
-        if self.prompt.type == "completion":
+        if isinstance(self.prompt, PromptCompletionBlock):
             meta_keys.append("prompt")
         else:
             meta_keys.append("chat")
@@ -5157,11 +5165,11 @@ class Prompt:
 
     def __getitem__(self, x):
         if x == "prompt":
-            return self.prompt.prompt
+            return cast(Any, self.prompt).prompt
         elif x == "chat":
-            return self.prompt.messages
+            return cast(Any, self.prompt).messages
         elif x == "tools":
-            return self.prompt.tools
+            return cast(Any, self.prompt).tools
         else:
             return self.options[x]
 
@@ -5194,7 +5202,7 @@ class Project:
     @property
     def id(self) -> str:
         self.lazy_init()
-        return self._id
+        return cast(str, self._id)
 
     @property
     def name(self):
@@ -5449,8 +5457,9 @@ class Logger(Exportable):
         # the url and org name can be passed into init_logger, resolved by login or provided as env variables
         # so this resolves all of those things. It's possible we never have an org name if the user has not
         # yet logged in and there is nothing else configured.
-        app_url = self.state.app_url or self._link_args.get("app_url") or _get_app_url()
-        org_name = self.state.org_name or self._link_args.get("org_name") or _get_org_name()
+        link_args = self._link_args or {}
+        app_url = self.state.app_url or link_args.get("app_url") or _get_app_url()
+        org_name = self.state.org_name or link_args.get("org_name") or _get_org_name()
         if not app_url or not org_name:
             return None
         return f"{app_url}/app/{org_name}"

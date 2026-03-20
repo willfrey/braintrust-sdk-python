@@ -158,7 +158,7 @@ def wrap_traceable(traceable: F, standalone: bool = False) -> F:
                 fn = traceable(fn, **kwargs)
 
             # Always apply Braintrust tracing
-            return traced(name=span_name)(fn)  # type: ignore[return-value]
+            return traced(name=span_name)(fn)
 
         if func is not None:
             return decorator(func)
@@ -190,7 +190,7 @@ def wrap_client(
             "evaluate",
             make_evaluate_wrapper(standalone=standalone, project_name=project_name, project_id=project_id),
         )
-        Client.evaluate._braintrust_patched = True  # type: ignore[attr-defined]
+        Client.evaluate._braintrust_patched = True
 
     if hasattr(Client, "aevaluate") and not _is_patched(Client.aevaluate):
         wrap_function_wrapper(
@@ -198,7 +198,7 @@ def wrap_client(
             "aevaluate",
             make_aevaluate_wrapper(standalone=standalone, project_name=project_name, project_id=project_id),
         )
-        Client.aevaluate._braintrust_patched = True  # type: ignore[attr-defined]
+        Client.aevaluate._braintrust_patched = True
 
     return Client
 
@@ -276,8 +276,8 @@ def wrap_evaluate(
         return evaluate
 
     evaluate_wrapper = make_evaluate_wrapper(standalone=standalone, project_name=project_name, project_id=project_id)
-    evaluate_wrapper._braintrust_patched = True  # type: ignore[attr-defined]
-    return evaluate_wrapper  # type: ignore[return-value]
+    evaluate_wrapper._braintrust_patched = True
+    return evaluate_wrapper
 
 
 def wrap_aevaluate(
@@ -302,8 +302,8 @@ def wrap_aevaluate(
         return aevaluate
 
     aevaluate_wrapper = make_aevaluate_wrapper(standalone=standalone, project_name=project_name, project_id=project_id)
-    aevaluate_wrapper._braintrust_patched = True  # type: ignore[attr-defined]
-    return aevaluate_wrapper  # type: ignore[return-value]
+    aevaluate_wrapper._braintrust_patched = True
+    return aevaluate_wrapper
 
 
 def _is_patched(obj: Any) -> bool:
@@ -443,7 +443,7 @@ def _convert_langsmith_data(data: Any) -> Callable[[], Iterator[EvalCase[Any, An
         # Determine the source iterable without loading everything into memory
         source: Iterable[Any]
         if callable(data):
-            source = data()  # type: ignore
+            source = data()
         elif isinstance(data, str):
             # Load examples from LangSmith dataset by name
             try:

@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import time
-from typing import AsyncGenerator, List
+from typing import Any, AsyncGenerator, List, cast
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -38,10 +38,10 @@ from braintrust.test_helpers import (
     init_test_exp,
     init_test_logger,
     preserve_env_vars,
-    simulate_login,  # noqa: F401 # type: ignore[reportUnusedImport]
+    simulate_login,  # noqa: F401
     simulate_logout,
-    with_memory_logger,  # noqa: F401 # type: ignore[reportUnusedImport]
-    with_simulate_login,  # noqa: F401 # type: ignore[reportUnusedImport]
+    with_memory_logger,  # noqa: F401
+    with_simulate_login,  # noqa: F401
 )
 
 
@@ -134,7 +134,7 @@ class TestInit(TestCase):
         }
 
         with patch("atexit.register") as mock_register:
-            _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))  # type: ignore
+            _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))
             mock_register.assert_called()
 
     def test_init_disable_atexit_flush(self):
@@ -147,17 +147,17 @@ class TestInit(TestCase):
 
         with patch.dict(os.environ, {"BRAINTRUST_DISABLE_ATEXIT_FLUSH": "True"}):
             with patch("atexit.register") as mock_register:
-                _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))  # type: ignore
+                _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))
                 mock_register.assert_not_called()
 
         with patch.dict(os.environ, {"BRAINTRUST_DISABLE_ATEXIT_FLUSH": "1"}):
             with patch("atexit.register") as mock_register:
-                _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))  # type: ignore
+                _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))
                 mock_register.assert_not_called()
 
         with patch.dict(os.environ, {"BRAINTRUST_DISABLE_ATEXIT_FLUSH": "yes"}):
             with patch("atexit.register") as mock_register:
-                _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))  # type: ignore
+                _HTTPBackgroundLogger(LazyValue(api_con_response, use_mutex=False))
                 mock_register.assert_not_called()
 
     def test_init_with_saved_parameters_attaches_reference(self):
@@ -764,7 +764,7 @@ def test_span_log_with_simple_circular_reference(with_memory_logger):
 
     with logger.start_span(name="test_span") as span:
         # Create simple circular reference
-        data = {"key": "value"}
+        data: dict[str, Any] = {"key": "value"}
         data["self"] = data
 
         # Should handle circular reference gracefully
@@ -790,8 +790,8 @@ def test_span_log_with_nested_circular_reference(with_memory_logger):
 
     with logger.start_span(name="test_span") as span:
         # Create nested structure with circular reference
-        page = {"page_number": 1, "content": "text"}
-        document = {"pages": [page]}
+        page: dict[str, Any] = {"page_number": 1, "content": "text"}
+        document: dict[str, Any] = {"pages": [page]}
         page["document"] = document
 
         # Should handle circular reference gracefully
@@ -819,13 +819,13 @@ def test_span_log_with_deep_document_structure(with_memory_logger):
 
     with logger.start_span(name="test_span") as span:
         # Create deeply nested document structure with circular reference
-        doc_data = {
+        doc_data: dict[str, Any] = {
             "model_id": "document-model",
             "content": "Document content",
             "pages": [],
         }
 
-        page = {
+        page: dict[str, Any] = {
             "page_number": 1,
             "lines": [{"content": "Line 1"}],
         }
@@ -867,8 +867,8 @@ def test_span_log_with_extremely_deep_nesting(with_memory_logger):
         recursion_limit = sys.getrecursionlimit()
 
         # Create structure deeper than recursion limit
-        deeply_nested = {"level": 0}
-        current = deeply_nested
+        deeply_nested: dict[str, Any] = {"level": 0}
+        current: dict[str, Any] = deeply_nested
         for i in range(1, recursion_limit + 100):
             current["nested"] = {"level": i}
             current = current["nested"]
@@ -1082,7 +1082,7 @@ def test_span_link_logged_out_org_name(with_memory_logger):
     link = span.link()
     assert (
         link
-        == f"https://www.braintrust.dev/app/test-org-name/object?object_type=project_logs&object_id=test-project-id&id={span._id}"
+        == f"https://www.braintrust.dev/app/test-org-name/object?object_type=project_logs&object_id=test-project-id&id={span.id}"
     )
 
 
@@ -1101,7 +1101,7 @@ def test_span_link_logged_out_org_name_env_vars(with_memory_logger):
         link = span.link()
         assert (
             link
-            == f"https://my-own-thing.ca/foo/bar/app/my-own-thing/object?object_type=project_logs&object_id=test-project-id&id={span._id}"
+            == f"https://my-own-thing.ca/foo/bar/app/my-own-thing/object?object_type=project_logs&object_id=test-project-id&id={span.id}"
         )
     finally:
         for k, v in originals.items():
@@ -1122,7 +1122,7 @@ def test_span_project_id_logged_in(with_memory_logger, with_simulate_login):
     link = span.link()
     assert (
         link
-        == f"https://www.braintrust.dev/app/test-org-name/object?object_type=project_logs&object_id=test-project-id&id={span._id}"
+        == f"https://www.braintrust.dev/app/test-org-name/object?object_type=project_logs&object_id=test-project-id&id={span.id}"
     )
 
 
@@ -1142,7 +1142,7 @@ def test_span_project_name_logged_in(with_simulate_login, with_memory_logger):
     span.end()
 
     link = span.link()
-    assert link == f"https://www.braintrust.dev/app/test-org-name/p/test-project/logs?oid={span._id}"
+    assert link == f"https://www.braintrust.dev/app/test-org-name/p/test-project/logs?oid={span.id}"
 
 
 def test_span_link_with_resolved_experiment(with_simulate_login, with_memory_logger):
@@ -1156,13 +1156,13 @@ def test_span_link_with_resolved_experiment(with_simulate_login, with_memory_log
     assert eid == "test-experiment-id"
 
     span = experiment.start_span(name="test-span")
-    span.parent_object_id = id_lazy_value
+    cast(Any, span).parent_object_id = id_lazy_value
     span.end()
 
     link = span.link()
     assert (
         link
-        == f"https://www.braintrust.dev/app/test-org-name/object?object_type=experiment&object_id=test-experiment-id&id={span._id}"
+        == f"https://www.braintrust.dev/app/test-org-name/object?object_type=experiment&object_id=test-experiment-id&id={span.id}"
     )
 
 
@@ -1197,7 +1197,7 @@ def test_experiment_span_link_uses_env_vars_when_logged_out(with_memory_logger):
 
         # Create span with resolved experiment ID
         span = experiment.start_span(name="test-span")
-        span.parent_object_id = LazyValue(lambda: "test-exp-id", use_mutex=False)
+        cast(Any, span).parent_object_id = LazyValue(lambda: "test-exp-id", use_mutex=False)
         span.end()
 
         link = span.link()
@@ -1226,7 +1226,7 @@ def test_permalink_with_valid_span_logged_in(with_simulate_login, with_memory_lo
 
     link = braintrust.permalink(span_export, org_name="test-org-name", app_url="https://www.braintrust.dev")
 
-    expected_link = f"https://www.braintrust.dev/app/test-org-name/object?object_type=project_logs&object_id=test-project-id&id={span._id}"
+    expected_link = f"https://www.braintrust.dev/app/test-org-name/object?object_type=project_logs&object_id=test-project-id&id={span.id}"
     assert link == expected_link
 
 
@@ -1260,7 +1260,7 @@ async def test_span_link_in_async_context(with_simulate_login, with_memory_logge
     # The link should NOT be the noop link
     assert link != "https://www.braintrust.dev/noop-span"
     # The link should contain the span ID
-    assert span._id in link
+    assert span.id in link
     # The link should contain the project ID
     assert "test-project-id" in link
 
@@ -1346,7 +1346,7 @@ async def test_span_link_in_nested_async(with_simulate_login, with_memory_logger
     span.end()
 
     assert link != "https://www.braintrust.dev/noop-span"
-    assert span._id in link
+    assert span.id in link
 
 
 def test_current_logger_in_thread(with_simulate_login, with_memory_logger):
@@ -1397,7 +1397,7 @@ def test_span_link_in_thread(with_simulate_login, with_memory_logger):
     # The link should NOT be the noop link
     assert thread_result["link"] != "https://www.braintrust.dev/noop-span"
     # The link should contain the span ID
-    assert span._id in thread_result["link"]
+    assert span.id in thread_result["link"]
 
 
 @pytest.mark.asyncio
@@ -3623,7 +3623,7 @@ def test_span_exit_logs_exception_group_sub_exceptions(with_memory_logger):
     init_test_logger(__name__)
 
     with pytest.raises(exceptiongroup.ExceptionGroup):
-        with braintrust.current_logger().start_span(name="eg-span"):
+        with cast(Any, braintrust.current_logger()).start_span(name="eg-span"):
             raise _raise_test_exception_group()
 
     logs = with_memory_logger.pop()

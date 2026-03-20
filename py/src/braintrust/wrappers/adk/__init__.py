@@ -608,7 +608,7 @@ def _serialize_config(config: Any) -> dict[str, Any] | Any:
     # Serialize the config
     config_dict = bt_safe_deep_copy(config)
     if not isinstance(config_dict, dict):
-        return config_dict  # type: ignore
+        return config_dict
 
     # Replace schema fields with serialized versions
     config_dict.update(serialized_schemas)

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from braintrust import init_dataset
 from braintrust._generated_types import RunEvalData, RunEvalData1, RunEvalData2
@@ -34,28 +34,29 @@ async def get_dataset(state: BraintrustState, data: RunEvalData | RunEvalData1 |
     """
     # Handle dict-based data (common case)
     if isinstance(data, dict):
-        if "project_name" in data and "dataset_name" in data:
+        data_dict = cast(dict[str, Any], data)
+        if "project_name" in data_dict and "dataset_name" in data_dict:
             # Dataset reference by name
             return init_dataset(
                 state=state,
-                project=data["project_name"],
-                name=data["dataset_name"],
+                project=data_dict["project_name"],
+                name=data_dict["dataset_name"],
                 # _internal_btql is optional
-                **({"_internal_btql": data["_internal_btql"]} if "_internal_btql" in data else {}),
+                **({"_internal_btql": data_dict["_internal_btql"]} if "_internal_btql" in data_dict else {}),
             )
-        elif "dataset_id" in data:
+        elif "dataset_id" in data_dict:
             # Dataset reference by ID
-            dataset_info = await get_dataset_by_id(state, data["dataset_id"])
+            dataset_info = await get_dataset_by_id(state, data_dict["dataset_id"])
             return init_dataset(
                 state=state,
                 project_id=dataset_info["project_id"],
                 name=dataset_info["dataset"],
                 # _internal_btql is optional
-                **({"_internal_btql": data["_internal_btql"]} if "_internal_btql" in data else {}),
+                **({"_internal_btql": data_dict["_internal_btql"]} if "_internal_btql" in data_dict else {}),
             )
-        elif "data" in data:
+        elif "data" in data_dict:
             # Inline data
-            return data["data"]
+            return data_dict["data"]
 
     # If it's not a dict, assume it's inline data
     return data
