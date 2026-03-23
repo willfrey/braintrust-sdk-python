@@ -30,7 +30,7 @@ class EvalHooks:
             self._report_progress(event)
 
 
-def serialize_sse_event(event: str, data: Any) -> str:
+def serialize_sse_event(event: str, data: object) -> str:
     """
     Serialize data into SSE format.
 
@@ -50,7 +50,7 @@ class SSEQueue:
     def __init__(self):
         self.queue: asyncio.Queue[str | None] = asyncio.Queue()
 
-    async def put_event(self, event: str, data: Any) -> None:
+    async def put_event(self, event: str, data: object) -> None:
         """Add an SSE event to the queue."""
         sse_data = serialize_sse_event(event, data)
         await self.queue.put(sse_data)

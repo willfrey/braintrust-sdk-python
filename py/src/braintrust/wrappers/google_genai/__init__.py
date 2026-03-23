@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 from braintrust.bt_json import bt_safe_deep_copy
@@ -53,7 +53,7 @@ def wrap_models(Models: Any):
     if is_patched(Models):
         return Models
 
-    def wrap_generate_content(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def wrap_generate_content(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -71,7 +71,7 @@ def wrap_models(Models: Any):
 
     wrap_function_wrapper(Models, "_generate_content", wrap_generate_content)
 
-    def wrap_generate_content_stream(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def wrap_generate_content_stream(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -104,7 +104,7 @@ def wrap_async_models(AsyncModels: Any):
     if is_patched(AsyncModels):
         return AsyncModels
 
-    async def wrap_generate_content(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    async def wrap_generate_content(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -122,7 +122,7 @@ def wrap_async_models(AsyncModels: Any):
 
     wrap_function_wrapper(AsyncModels, "generate_content", wrap_generate_content)
 
-    async def wrap_generate_content_stream(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    async def wrap_generate_content_stream(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -251,15 +251,15 @@ def omit(obj: dict[str, Any], keys: Iterable[str]):
     return {k: v for k, v in obj.items() if k not in keys}
 
 
-def is_patched(obj: object):
+def is_patched(obj: object) -> bool:
     return getattr(obj, "_braintrust_patched", False)
 
 
-def mark_patched(obj: object):
-    return setattr(obj, "_braintrust_patched", True)
+def mark_patched(obj: object) -> None:
+    setattr(obj, "_braintrust_patched", True)
 
 
-def get_args_kwargs(args: list[str], kwargs: dict[str, Any], keys: Iterable[str]):
+def get_args_kwargs(args: tuple[Any, ...], kwargs: dict[str, Any], keys: Iterable[str]):
     return {k: args[i] if args else kwargs.get(k) for i, k in enumerate(keys)}, omit(kwargs, keys)
 
 

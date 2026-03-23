@@ -75,7 +75,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         set_current: bool | None = None,
         parent: str | None = None,
         event: LogEvent | None = None,
-    ) -> Any:
+    ) -> Span:
         if run_id in self.spans:
             # XXX: See graph test case of an example where this _may_ be intended.
             _logger.warning(f"Span already exists for run_id {run_id} (this is likely a bug)")
@@ -158,7 +158,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         metadata: Mapping[str, Any] | None = None,
         metrics: Mapping[str, int | float] | None = None,
         dataset_record_id: str | None = None,
-    ) -> Any:
+    ) -> None:
         if run_id not in self.spans:
             return
 
@@ -207,7 +207,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,  # TODO: response=
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, error=str(error), metadata={**kwargs})
 
         self._start_times.pop(run_id, None)
@@ -221,7 +221,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,  # TODO: some metadata
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, error=str(error), metadata={**kwargs})
 
     def on_tool_error(
@@ -231,7 +231,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, error=str(error), metadata={**kwargs})
 
     def on_retriever_error(
@@ -241,7 +241,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, error=str(error), metadata={**kwargs})
 
     # Agent Methods
@@ -252,7 +252,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_span(
             parent_run_id,
             run_id,
@@ -268,7 +268,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, output=finish, metadata={**kwargs})
 
     def on_chain_start(
@@ -282,7 +282,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         name: str | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         tags = tags or []
 
         # avoids extra logs that seem not as useful esp. with langgraph
@@ -323,7 +323,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         parent_run_id: UUID | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, output=outputs, tags=tags, metadata={**kwargs})
 
     def on_llm_start(
@@ -337,7 +337,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         metadata: dict[str, Any] | None = None,
         name: str | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_times[run_id] = time.perf_counter()
         self._first_token_times.pop(run_id, None)
         self._ttft_ms.pop(run_id, None)
@@ -372,7 +372,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         name: str | None = None,
         invocation_params: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_times[run_id] = time.perf_counter()
         self._first_token_times.pop(run_id, None)
         self._ttft_ms.pop(run_id, None)
@@ -406,7 +406,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         parent_run_id: UUID | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         if run_id not in self.spans:
             return
 
@@ -444,7 +444,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         inputs: dict[str, Any] | None = None,
         name: str | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_span(
             parent_run_id,
             run_id,
@@ -472,7 +472,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, output=output, metadata={**kwargs})
 
     def on_retriever_start(
@@ -486,7 +486,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         metadata: dict[str, Any] | None = None,
         name: str | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_span(
             parent_run_id,
             run_id,
@@ -511,7 +511,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, output=documents, metadata={**kwargs})
 
     def on_llm_new_token(
@@ -522,7 +522,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         if run_id not in self._first_token_times:
             now = time.perf_counter()
             self._first_token_times[run_id] = now
@@ -537,7 +537,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         pass
 
     def on_retry(
@@ -547,7 +547,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         parent_run_id: UUID | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         pass
 
     def on_custom_event(
@@ -559,7 +559,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         tags: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         pass
 
 

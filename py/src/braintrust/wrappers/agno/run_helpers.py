@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 from inspect import isawaitable
 from typing import Any
 
@@ -17,10 +18,10 @@ from .utils import (
 
 
 def run_public_dispatch_wrapper(
-    wrapped: Any,
+    wrapped: Callable[..., Any],
     instance: Any,
-    args: Any,
-    kwargs: Any,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
     *,
     default_name: str,
     metadata_component: str,
@@ -62,10 +63,10 @@ def run_public_dispatch_wrapper(
 
 
 def arun_public_dispatch_wrapper(
-    wrapped: Any,
+    wrapped: Callable[..., Any],
     instance: Any,
-    args: Any,
-    kwargs: Any,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
     *,
     default_name: str,
     metadata_component: str,

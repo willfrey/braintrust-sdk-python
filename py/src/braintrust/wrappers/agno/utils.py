@@ -12,7 +12,7 @@ def is_patched(obj: object) -> bool:
     return getattr(obj, "_braintrust_patched", False)
 
 
-def mark_patched(obj: object):
+def mark_patched(obj: object) -> None:
     setattr(obj, "_braintrust_patched", True)
 
 
@@ -20,7 +20,7 @@ def clean(obj: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in obj.items() if v is not None}
 
 
-def get_args_kwargs(args: list[str], kwargs: dict[str, Any], keys: list[str]):
+def get_args_kwargs(args: tuple[Any, ...], kwargs: dict[str, Any], keys: list[str]):
     return {k: args[i] if args else kwargs.get(k) for i, k in enumerate(keys)}, omit(kwargs, keys)
 
 

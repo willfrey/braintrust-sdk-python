@@ -6,7 +6,7 @@ import time
 from collections.abc import AsyncGenerator, AsyncIterable
 from typing import Any
 
-from braintrust.logger import start_span
+from braintrust.logger import Span, start_span
 from braintrust.span_types import SpanTypeAttribute
 from braintrust.wrappers._anthropic_utils import Wrapper, extract_anthropic_usage, finalize_anthropic_tokens
 from braintrust.wrappers.claude_agent_sdk._constants import (
@@ -39,7 +39,7 @@ class ParsedToolName:
 
 @dataclasses.dataclass
 class _ActiveToolSpan:
-    span: Any
+    span: Span
     raw_name: str
     display_name: str
     input: Any
@@ -933,7 +933,7 @@ def _extract_usage_from_result_message(result_message: Any) -> dict[str, float]:
     return metrics
 
 
-def _build_llm_input(prompt: Any, conversation_history: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
+def _build_llm_input(prompt: object, conversation_history: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
     """Builds the input array for an LLM span from the initial prompt and conversation history.
 
     Formats input to match Anthropic messages API format for proper UI rendering.

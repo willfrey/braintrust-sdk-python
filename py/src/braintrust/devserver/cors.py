@@ -67,7 +67,7 @@ def create_cors_middleware() -> type:
     """Create a Starlette CORS middleware class."""
 
     class CORSMiddleware:
-        def __init__(self, app: Any) -> None:
+        def __init__(self, app: Callable[..., Awaitable[None]]) -> None:
             self.app = app
 
         async def __call__(

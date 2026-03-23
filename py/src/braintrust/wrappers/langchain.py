@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 import braintrust
+from braintrust.logger import Span
 
 
 _logger = logging.getLogger("braintrust.wrappers.langchain")
@@ -35,7 +36,7 @@ except ImportError:
         generations: list[list[Any]] = []
 
 
-langchain_parent: contextvars.ContextVar[Any] = contextvars.ContextVar("langchain_current_span", default=None)
+langchain_parent: contextvars.ContextVar[Span | None] = contextvars.ContextVar("langchain_current_span", default=None)
 
 
 class BraintrustTracer(BaseCallbackHandler):
@@ -44,7 +45,7 @@ class BraintrustTracer(BaseCallbackHandler):
         self.logger = logger
         self.spans = {}
 
-    def _start_span(self, parent_run_id, run_id, name: str | None, **kwargs: Any) -> Any:
+    def _start_span(self, parent_run_id: UUID | None, run_id: UUID, name: str | None, **kwargs: Any) -> Span:
         assert run_id not in self.spans, f"Span already exists for run_id {run_id} (this is likely a bug)"
 
         current_parent = langchain_parent.get()

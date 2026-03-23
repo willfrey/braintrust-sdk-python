@@ -1123,7 +1123,7 @@ def serialize_json_with_plain_string(v: object) -> str:
         return json.dumps(v)
 
 
-def deserialize_plain_string_as_json(s: str) -> Any:
+def deserialize_plain_string_as_json(s: str) -> dict[str, Any]:
     try:
         return {"value": json.loads(s)}
     except json.JSONDecodeError as e:

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import time
 from typing import Any
 
@@ -21,7 +22,7 @@ def wrap_agent(Agent: Any) -> Any:
     if is_patched(Agent):
         return Agent
 
-    def _create_run_span(wrapped: Any, instance: Any, args: Any, kwargs: Any, input_data: dict):
+    def _create_run_span(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any], input_data: dict):
         """Shared logic to create span and execute run method."""
         agent_name = getattr(instance, "name", None) or "Agent"
         span_name = f"{agent_name}.run"
@@ -39,14 +40,14 @@ def wrap_agent(Agent: Any) -> Any:
             )
             return result
 
-    def _run_wrapper_private(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def _run_wrapper_private(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         """Entry point for private _run(run_response, run_messages)."""
         run_response = args[0] if len(args) > 0 else kwargs.get("run_response")
         run_messages = args[1] if len(args) > 1 else kwargs.get("run_messages")
         input_data = {"run_response": run_response, "run_messages": run_messages}
         return _create_run_span(wrapped, instance, args, kwargs, input_data)
 
-    def _run_wrapper_public(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def _run_wrapper_public(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         return run_public_dispatch_wrapper(
             wrapped, instance, args, kwargs, default_name="Agent", metadata_component="agent"
         )
@@ -57,7 +58,7 @@ def wrap_agent(Agent: Any) -> Any:
     elif hasattr(Agent, "run"):
         wrap_function_wrapper(Agent, "run", _run_wrapper_public)
 
-    async def _create_arun_span_private(wrapped: Any, instance: Any, args: Any, kwargs: Any, input_data: dict):
+    async def _create_arun_span_private(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any], input_data: dict):
         """Shared logic to create span and execute async private _arun method."""
         agent_name = getattr(instance, "name", None) or "Agent"
         span_name = f"{agent_name}.arun"
@@ -75,14 +76,14 @@ def wrap_agent(Agent: Any) -> Any:
             )
             return result
 
-    async def _arun_wrapper_private(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    async def _arun_wrapper_private(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         """Entry point for private _arun(run_response, input)."""
         run_response = args[0] if len(args) > 0 else kwargs.get("run_response")
         input_arg = args[1] if len(args) > 1 else kwargs.get("input")
         input_data = {"run_response": run_response, "input": input_arg}
         return await _create_arun_span_private(wrapped, instance, args, kwargs, input_data)
 
-    def _arun_wrapper_public(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def _arun_wrapper_public(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         return arun_public_dispatch_wrapper(
             wrapped, instance, args, kwargs, default_name="Agent", metadata_component="agent"
         )
@@ -91,7 +92,7 @@ def wrap_agent(Agent: Any) -> Any:
     if hasattr(Agent, "_arun"):
         wrap_function_wrapper(Agent, "_arun", _arun_wrapper_private)
 
-    def run_stream_wrapper(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def run_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         agent_name = getattr(instance, "name", None) or "Agent"
         span_name = f"{agent_name}.run_stream"
 
@@ -150,7 +151,7 @@ def wrap_agent(Agent: Any) -> Any:
     if hasattr(Agent, "_run_stream"):
         wrap_function_wrapper(Agent, "_run_stream", run_stream_wrapper)
 
-    def arun_stream_wrapper(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def arun_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         agent_name = getattr(instance, "name", None) or "Agent"
         span_name = f"{agent_name}.arun_stream"
 

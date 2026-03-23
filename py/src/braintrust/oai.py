@@ -3,7 +3,7 @@ import base64
 import re
 import time
 import warnings
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable, Iterator
 from typing import Any
 
 from wrapt import wrap_function_wrapper
@@ -361,7 +361,7 @@ class _TracedStream(NamedWrapper):
         self._traced_generator = traced_generator
         super().__init__(original_stream)
 
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Iterator[Any]:
         return self._traced_generator
 
     def __next__(self) -> Any:
@@ -376,7 +376,7 @@ class _AsyncTracedStream(NamedWrapper):
         self._traced_generator = traced_generator
         super().__init__(original_stream)
 
-    def __aiter__(self) -> Any:
+    def __aiter__(self) -> AsyncIterator[Any]:
         return self._traced_generator
 
     async def __anext__(self) -> Any:

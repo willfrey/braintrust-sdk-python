@@ -40,11 +40,14 @@ Usage:
 import inspect
 import logging
 import os
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List, Optional, ParamSpec, TypeVar
 
 from braintrust.framework import EvalCase
 from braintrust.logger import NOOP_SPAN, current_span, init_logger, traced
 from wrapt import wrap_function_wrapper
+
+if TYPE_CHECKING:
+    from braintrust.score import Score
 
 
 logger = logging.getLogger(__name__)
@@ -206,7 +209,7 @@ def wrap_client(
 def make_evaluate_wrapper(
     *, project_name: Optional[str] = None, project_id: Optional[str] = None, standalone: bool = False
 ):
-    def evaluate_wrapper(wrapped: Any, instance: Any, args: Any, kwargs: Any) -> Any:
+    def evaluate_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
         result = None
         if not standalone:
             result = wrapped(*args, **kwargs)
@@ -233,7 +236,7 @@ def make_evaluate_wrapper(
 def make_aevaluate_wrapper(
     *, project_name: Optional[str] = None, project_id: Optional[str] = None, standalone: bool = False
 ):
-    async def aevaluate_wrapper(wrapped: Any, instance: Any, args: Any, kwargs: Any) -> Any:
+    async def aevaluate_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
         result = None
         if not standalone:
             result = await wrapped(*args, **kwargs)
@@ -306,7 +309,7 @@ def wrap_aevaluate(
     return aevaluate_wrapper
 
 
-def _is_patched(obj: Any) -> bool:
+def _is_patched(obj: object) -> bool:
     return getattr(obj, "_braintrust_patched", False)
 
 
@@ -405,7 +408,7 @@ def _wrap_output(output: Any) -> Dict[str, Any]:
 
 def _make_braintrust_scorer(
     evaluator: Callable[..., Any],
-) -> Callable[..., Any]:
+) -> Callable[..., "Score"]:
     """
     Create a Braintrust scorer from a LangSmith evaluator.
 
@@ -413,7 +416,7 @@ def _make_braintrust_scorer(
     """
     evaluator_name = getattr(evaluator, "__name__", "score")
 
-    def braintrust_scorer(input: Any, output: Any, expected: Optional[Any] = None, **kwargs: Any) -> Any:
+    def braintrust_scorer(input: Any, output: Any, expected: Optional[Any] = None, **kwargs: Any) -> "Score":
         from braintrust.score import Score
 
         # Run the evaluator with LangSmith's signature

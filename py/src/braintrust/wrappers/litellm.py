@@ -35,7 +35,7 @@ TOKEN_PREFIX_MAP: dict[str, str] = {
 class NamedWrapper:
     """Wrapper that preserves access to the original wrapped object's attributes."""
 
-    def __init__(self, wrapped: Any) -> None:
+    def __init__(self, wrapped: object) -> None:
         self.__wrapped = wrapped
 
     def __getattr__(self, name: str) -> Any:

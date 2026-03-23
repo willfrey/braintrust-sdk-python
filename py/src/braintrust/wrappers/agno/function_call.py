@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 
 from braintrust.logger import start_span
@@ -11,7 +12,7 @@ def wrap_function_call(FunctionCall: Any) -> Any:
     if is_patched(FunctionCall):
         return FunctionCall
 
-    def execute_wrapper(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    def execute_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         function_name = _get_function_name(instance)
         span_name = f"{function_name}.execute"
 
@@ -34,7 +35,7 @@ def wrap_function_call(FunctionCall: Any) -> Any:
     if hasattr(FunctionCall, "execute"):
         wrap_function_wrapper(FunctionCall, "execute", execute_wrapper)
 
-    async def aexecute_wrapper(wrapped: Any, instance: Any, args: Any, kwargs: Any):
+    async def aexecute_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
         function_name = _get_function_name(instance)
         span_name = f"{function_name}.aexecute"
 
