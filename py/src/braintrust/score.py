@@ -4,6 +4,8 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import Any
 
+from typing_extensions import TypeGuard
+
 from .serializable_data_class import SerializableDataClass
 from .types import Metadata
 
@@ -51,7 +53,7 @@ class Score(SerializableDataClass):
             )
 
 
-def is_score(obj):
+def is_score(obj) -> TypeGuard["Score"]:
     return hasattr(obj, "name") and hasattr(obj, "score") and hasattr(obj, "metadata") and hasattr(obj, "as_dict")
 
 

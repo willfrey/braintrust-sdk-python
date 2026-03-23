@@ -18,7 +18,7 @@ X_CACHED_HEADER = "x-bt-cached"
 
 
 class NamedWrapper:
-    def __init__(self, wrapped: Any):
+    def __init__(self, wrapped: object):
         self.__wrapped = wrapped
 
     def __getattr__(self, name: str) -> Any:
@@ -160,6 +160,7 @@ class ChatCompletionWrapper:
 
         try:
             start = time.time()
+            assert self.create_fn is not None
             create_response = self.create_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -213,6 +214,7 @@ class ChatCompletionWrapper:
 
         try:
             start = time.time()
+            assert self.acreate_fn is not None
             create_response = await self.acreate_fn(*args, **kwargs)
 
             if hasattr(create_response, "parse"):
@@ -415,6 +417,7 @@ class ResponseWrapper:
 
         try:
             start = time.time()
+            assert self.create_fn is not None
             create_response = self.create_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -467,6 +470,7 @@ class ResponseWrapper:
 
         try:
             start = time.time()
+            assert self.acreate_fn is not None
             create_response = await self.acreate_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -656,6 +660,7 @@ class BaseWrapper(abc.ABC):
         with start_span(
             **merge_dicts(dict(name=self._name, span_attributes={"type": SpanTypeAttribute.LLM}), params)
         ) as span:
+            assert self._create_fn is not None
             create_response = self._create_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -673,6 +678,7 @@ class BaseWrapper(abc.ABC):
         with start_span(
             **merge_dicts(dict(name=self._name, span_attributes={"type": SpanTypeAttribute.LLM}), params)
         ) as span:
+            assert self._acreate_fn is not None
             create_response = await self._acreate_fn(*args, **kwargs)
             if hasattr(create_response, "parse"):
                 raw_response = create_response.parse()
@@ -984,7 +990,7 @@ TOKEN_PREFIX_MAP = {
 }
 
 
-def _parse_metrics_from_usage(usage: Any) -> dict[str, Any]:
+def _parse_metrics_from_usage(usage: object) -> dict[str, Any]:
     # For simplicity, this function handles all the different APIs
     metrics = {}
 
@@ -1065,7 +1071,7 @@ def serialize_response_format(response_format: Any) -> Any:
         return response_format
 
 
-def _is_not_given(value: Any) -> bool:
+def _is_not_given(value: object) -> bool:
     if value is None:
         return False
     try:

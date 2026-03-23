@@ -99,6 +99,7 @@ def test_basic_completion(memory_logger, mode):
     end = time.time()
 
     # Verify response contains expected content
+    assert text is not None
     assert "Paris" in text
 
     # Verify logging
@@ -151,6 +152,7 @@ async def test_basic_completion_async(memory_logger, mode):
     end = time.time()
 
     # Verify response contains expected content
+    assert text is not None
     assert "Paris" in text
 
     # Verify logging
@@ -486,6 +488,7 @@ def test_multi_turn(memory_logger):
     )
 
     text = response.text
+    assert text is not None
     assert "Alice" in text
 
     # Verify logging

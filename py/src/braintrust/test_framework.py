@@ -1,12 +1,12 @@
 import importlib.util
-from typing import List
+from typing import Any, List
 from unittest.mock import MagicMock
 
 import pytest
 from braintrust.logger import BraintrustState
 
 from .framework import (
-    Eval,
+    EvalAsync,
     EvalCase,
     EvalHooks,
     EvalResultWithSummary,
@@ -149,7 +149,7 @@ async def test_run_evaluator_with_many_scorers():
         def _run_eval_sync(self, *args, **kwargs):
             return Score(name="custom_async_scorer", score=1.0)
 
-    scorers = [
+    scorers: list[Any] = [
         dict_scorer,
         core_scorer,
         scorer,
@@ -357,7 +357,7 @@ async def test_eval_no_send_logs_true(with_memory_logger, simple_scorer):
     def exact_match(input, output, expected):
         return {"name": "exact_match", "score": 1.0 if output == expected else 0.0}
 
-    result = await Eval(
+    result = await EvalAsync(
         "test-no-logs",
         data=[{"input": "hello", "expected": "hello world"}, {"input": "test", "expected": "test world"}],
         task=lambda input_val: input_val + " world",
@@ -398,7 +398,7 @@ async def test_eval_no_send_logs_with_none_score(with_memory_logger):
             return {"name": "conditional", "score": None}
         return {"name": "conditional", "score": 1.0}
 
-    result = await Eval(
+    result = await EvalAsync(
         "test-none-score",
         data=[
             {"input": "hello", "expected": "hello world"},
@@ -580,7 +580,7 @@ async def test_eval_enable_cache():
     state.span_cache = MagicMock()
 
     # Test enable_cache=False
-    await Eval(
+    await EvalAsync(
         "test-enable-cache-false",
         data=[EvalCase(input=1, expected=1)],
         task=lambda x: x,
@@ -596,7 +596,7 @@ async def test_eval_enable_cache():
     state.span_cache.start.reset_mock()
     state.span_cache.stop.reset_mock()
 
-    await Eval(
+    await EvalAsync(
         "test-enable-cache-true",
         data=[EvalCase(input=1, expected=1)],
         task=lambda x: x,

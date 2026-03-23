@@ -1,6 +1,6 @@
 import threading
 from collections import deque
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 from .util import eprint
 
@@ -10,7 +10,7 @@ T = TypeVar("T")
 DEFAULT_QUEUE_SIZE = 25000
 
 
-class LogQueue:
+class LogQueue(Generic[T]):
     """A thread-safe queue with a fixed size that drops oldest items when full.
 
     When enforcement is disabled (default), drops happen silently.

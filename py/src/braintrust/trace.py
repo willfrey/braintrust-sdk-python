@@ -425,14 +425,15 @@ class LocalTrace(dict):
 
     async def _ensure_spans_ready(self) -> None:
         """Ensure spans are flushed before fetching."""
-        if self._spans_flushed or not self._ensure_spans_flushed:
+        if self._spans_flushed or self._ensure_spans_flushed is None:
             return
 
+        ensure_spans_flushed = self._ensure_spans_flushed
         if self._spans_flush_promise is None:
 
             async def flush_and_mark():
                 try:
-                    await self._ensure_spans_flushed()
+                    await ensure_spans_flushed()
                     self._spans_flushed = True
                 except Exception as err:
                     self._spans_flush_promise = None

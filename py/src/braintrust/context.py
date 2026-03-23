@@ -3,7 +3,7 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,7 +14,7 @@ class SpanInfo:
 
     trace_id: str
     span_id: str
-    span_object: Any = None
+    span_object: object = None
 
 
 @dataclass
@@ -31,7 +31,7 @@ class ContextManager(ABC):
     """
 
     @abstractmethod
-    def get_current_span_info(self) -> Any | None:
+    def get_current_span_info(self) -> SpanInfo | None:
         """Get information about the currently active span.
 
         Returns:
@@ -76,7 +76,7 @@ class BraintrustContextManager(ContextManager):
     """Braintrust-only context manager using contextvars when OTEL is not available."""
 
     def __init__(self):
-        self._current_span: ContextVar[Any | None] = ContextVar("braintrust_current_span", default=None)
+        self._current_span: ContextVar[Any] = ContextVar("braintrust_current_span", default=None)
 
     def get_current_span_info(self) -> SpanInfo | None:
         """Get information about the currently active span."""
@@ -96,7 +96,7 @@ class BraintrustContextManager(ContextManager):
         # If current span is a BT span, use it as parent
         return ParentSpanIds(root_span_id=current_span.root_span_id, span_parents=[current_span.span_id])
 
-    def set_current_span(self, span_object: Any) -> Any:
+    def set_current_span(self, span_object: Any) -> Token[Any]:
         """Set the current active span."""
         return self._current_span.set(span_object)
 

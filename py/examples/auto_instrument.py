@@ -59,12 +59,14 @@ with braintrust.start_span(name="auto_instrument_example") as span:
         max_tokens=100,
         messages=[{"role": "user", "content": "Say goodbye in 3 words"}],
     )
-    print(f"  Anthropic: {anthropic_response.content[0].text}")
+    first_block = anthropic_response.content[0]
+    anthropic_text = first_block.text if hasattr(first_block, "text") else ""
+    print(f"  Anthropic: {anthropic_text}")
 
     span.log(
         output={
             "openai": openai_response.choices[0].message.content,
-            "anthropic": anthropic_response.content[0].text,
+            "anthropic": anthropic_text,
         }
     )
 

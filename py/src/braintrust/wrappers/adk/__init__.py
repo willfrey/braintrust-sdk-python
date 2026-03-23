@@ -480,7 +480,7 @@ def _determine_llm_call_type(llm_request: Any, model_response: Any = None) -> st
         return "unknown"
 
 
-def _is_patched(obj: Any):
+def _is_patched(obj: object):
     return getattr(obj, "_braintrust_patched", False)
 
 

@@ -193,7 +193,7 @@ class LazyValue(Generic[T]):
 
     @property
     def value(self) -> T | None:
-        return self._state.value if self._state.has_succeeded == True else None
+        return self._state.value if isinstance(self._state, _LazyValueResolvedState) else None
 
     def get(self) -> T:
         # Short-circuit check `has_succeeded`. This should be fine because
@@ -201,12 +201,12 @@ class LazyValue(Generic[T]):
         # consistent semantics, so we'll observe the write to
         # `self._state.value` as well.
         # https://docs.python.org/3/faq/library.html#what-kinds-of-global-value-mutation-are-thread-safe
-        if self._state.has_succeeded == True:
+        if isinstance(self._state, _LazyValueResolvedState):
             return self._state.value
         if self.mutex:
             self.mutex.acquire()
         try:
-            if self._state.has_succeeded == False:
+            if not isinstance(self._state, _LazyValueResolvedState):
                 res = self.callable()
                 self._state = _LazyValueResolvedState(value=res)
             return self._state.value
@@ -216,7 +216,7 @@ class LazyValue(Generic[T]):
 
     def get_sync(self) -> tuple[bool, T | None]:
         """Returns a tuple of (has_succeeded, value) without triggering evaluation."""
-        if self._state.has_succeeded:
+        if isinstance(self._state, _LazyValueResolvedState):
             # should be fine without the mutex check
             return (True, self._state.value)
         return (False, None)

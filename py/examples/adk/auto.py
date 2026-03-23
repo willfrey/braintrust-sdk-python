@@ -45,7 +45,7 @@ async def main():
     user_msg = types.Content(role="user", parts=[types.Part(text="What's the weather in San Francisco?")])
 
     async for event in runner.run_async(user_id="user", session_id="session", new_message=user_msg):
-        if event.is_final_response():
+        if event.is_final_response() and event.content and event.content.parts:
             print(event.content.parts[0].text)
 
 

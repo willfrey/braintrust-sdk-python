@@ -31,11 +31,14 @@ from ..framework import (
     EvalScorer,
     Evaluator,
     ExperimentSummary,
+    Metadata,
     SSEProgressEvent,
+    TaskProgressEvent,
 )
 from ..generated_types import FunctionId
-from ..logger import BraintrustState, bt_iscoroutinefunction
+from ..logger import BraintrustState, Span, bt_iscoroutinefunction
 from ..parameters import (
+    EvalParameters,
     RemoteEvalParameters,
     ValidatedParameters,
     serialize_remote_eval_parameters_container,
@@ -53,17 +56,40 @@ from .schemas import ValidationError, parse_eval_body
 _all_evaluators: dict[str, Evaluator[Any, Any]] = {}
 
 
-class _ParameterOverrideHooks:
+class _ParameterOverrideHooks(EvalHooks[Any]):
     def __init__(self, hooks: EvalHooks[Any], parameters: ValidatedParameters):
         self._hooks = hooks
         self._parameters = parameters
 
     @property
+    def metadata(self) -> Metadata | None:
+        return self._hooks.metadata
+
+    @property
+    def expected(self) -> Any | None:
+        return self._hooks.expected
+
+    @property
+    def span(self) -> Span:
+        return self._hooks.span
+
+    @property
+    def trial_index(self) -> int:
+        return self._hooks.trial_index
+
+    @property
+    def tags(self):
+        return self._hooks.tags
+
+    def report_progress(self, progress: TaskProgressEvent) -> None:
+        self._hooks.report_progress(progress)
+
+    def meta(self, **info: Any) -> None:
+        self._hooks.meta(**info)
+
+    @property
     def parameters(self) -> ValidatedParameters:
         return self._parameters
-
-    def __getattr__(self, name: str):
-        return getattr(self._hooks, name)
 
 
 class CheckAuthorizedMiddleware(BaseHTTPMiddleware):
@@ -182,7 +208,9 @@ async def run_eval(request: Request) -> JSONResponse | StreamingResponse:
     sse_queue = SSEQueue()
 
     async def task(input: Any, hooks: EvalHooks[Any]):
-        task_hooks = hooks if validated_parameters is None else _ParameterOverrideHooks(hooks, validated_parameters)
+        task_hooks: EvalHooks[Any] = (
+            hooks if validated_parameters is None else _ParameterOverrideHooks(hooks, validated_parameters)
+        )
         if bt_iscoroutinefunction(evaluator.task):
             result = await evaluator.task(input, task_hooks)
         else:
@@ -210,36 +238,43 @@ async def run_eval(request: Request) -> JSONResponse | StreamingResponse:
             # Use create_task to schedule the async write without blocking
             asyncio.create_task(sse_queue.put_event("progress", event))
 
-    parent = eval_data.get("parent")
-    if parent:
-        parent = parse_parent(parent)
+    parent_raw = eval_data.get("parent")
+    parent: str | None = None
+    if isinstance(parent_raw, str):
+        parent = parse_parent(parent_raw)
+    elif isinstance(parent_raw, dict):
+        parent = parse_parent(parent_raw)
 
-    eval_kwargs = {
-        k: v for (k, v) in evaluator.__dict__.items() if k not in ["eval_name", "project_name", "parameter_values"]
-    }
-    if validated_parameters is not None and not isinstance(evaluator.parameters, RemoteEvalParameters):
-        eval_kwargs["parameters"] = validated_parameters
+    effective_parameters: EvalParameters | RemoteEvalParameters | None = evaluator.parameters
 
     try:
         eval_task = asyncio.create_task(
             EvalAsync(
                 name=eval_data["name"],
-                **{
-                    **eval_kwargs,
-                    "state": state,
-                    "scores": evaluator.scores
-                    + [
-                        make_scorer(state, score["name"], score["function_id"], ctx.project_id)
-                        for score in eval_data.get("scores", [])
-                    ],
-                    "stream": stream_fn,
-                    "on_start": on_start_fn,
-                    "data": dataset,
-                    "task": task,
-                    "experiment_name": eval_data.get("experiment_name"),
-                    "parent": parent,
-                    "project_id": eval_data.get("project_id"),
-                },
+                data=dataset,
+                task=task,
+                scores=evaluator.scores + _build_scorers(state, eval_data.get("scores", []), ctx.project_id),
+                experiment_name=eval_data.get("experiment_name"),
+                trial_count=evaluator.trial_count,
+                metadata=evaluator.metadata,
+                tags=evaluator.tags,
+                is_public=evaluator.is_public,
+                update=evaluator.update,
+                timeout=evaluator.timeout,
+                max_concurrency=evaluator.max_concurrency,
+                project_id=eval_data.get("project_id") or evaluator.project_id,
+                base_experiment_name=evaluator.base_experiment_name,
+                base_experiment_id=evaluator.base_experiment_id,
+                git_metadata_settings=evaluator.git_metadata_settings,
+                repo_info=evaluator.repo_info,
+                error_score_handler=evaluator.error_score_handler,
+                description=evaluator.description,
+                summarize_scores=evaluator.summarize_scores,
+                parameters=effective_parameters,
+                stream=stream_fn,
+                on_start=on_start_fn,
+                parent=parent,
+                state=state,
             )
         )
 
@@ -342,6 +377,20 @@ def snake_to_camel(snake_str: str) -> str:
     """Convert snake_case to camelCase."""
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:]) if components else snake_str
+
+
+def _build_scorers(
+    state: BraintrustState,
+    scores: list[dict[str, Any]],
+    project_id: str | None,
+) -> list[EvalScorer[Any, Any]]:
+    result = []
+    for score in scores:
+        name = score.get("name") if isinstance(score, dict) else None
+        function_id = score.get("function_id") if isinstance(score, dict) else None
+        if isinstance(name, str) and function_id is not None:
+            result.append(make_scorer(state, name, function_id, project_id))
+    return result
 
 
 def make_scorer(

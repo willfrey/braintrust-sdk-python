@@ -378,6 +378,7 @@ def main(args):
         _logger.info(f"Stack with name {args.name} has been created with status: {status['StackStatus']}")
         exit(0)
 
+    assert status is not None
     _logger.info(f"Stack with name {args.name} has status: {status['StackStatus']}")
 
     if not ("_COMPLETE" in status["StackStatus"] or "_FAILED" in status["StackStatus"]):
@@ -485,7 +486,7 @@ def main(args):
             if len(org_info) == 1:
                 org_info = org_info[0]
 
-        if org_info and (universal_url and org_info["api_url"] != universal_url):
+        if isinstance(org_info, dict) and (universal_url and org_info["api_url"] != universal_url):
             if args.update_stack_url:
                 _logger.info(f"Will update org {org_info['name']}'s urls.")
                 _logger.info(f"  They are currently set to:")

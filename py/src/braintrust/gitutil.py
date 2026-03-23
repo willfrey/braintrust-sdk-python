@@ -132,7 +132,8 @@ def get_repo_info(settings: GitMetadataSettings | None = None):
     if repo is None or settings.collect == "all":
         return repo
 
-    return RepoInfo(**{k: v if k in settings.fields else None for k, v in repo.as_dict().items()})
+    fields = settings.fields or []
+    return RepoInfo(**{k: v if k in fields else None for k, v in repo.as_dict().items()})
 
 
 def repo_info():

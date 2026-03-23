@@ -157,7 +157,7 @@ class SSEProgressEvent(TaskProgressEvent):
 
     id: str
     object_type: str
-    origin: ObjectReference
+    origin: ObjectReference | None
     name: str
 
 
@@ -645,7 +645,7 @@ def report_evaluator_result(evaluator: Evaluator, result: EvalResultWithSummary,
     return len(failing_results) == 0
 
 
-default_reporter = ReporterDef(
+default_reporter: ReporterDef[Any, Any, Any] = ReporterDef(
     name="default",
     report_eval=report_evaluator_result,
     report_run=lambda results, verbose, jsonl: all(x for x in results),
@@ -739,7 +739,7 @@ def _EvalCommon(
                 "Must specify a reporter object, not a name. Can only specify reporter names when running 'braintrust eval'"
             )
 
-        reporter = reporter or default_reporter
+        reporter = reporter if reporter is not None else default_reporter
 
         if base_experiment_name is None and isinstance(evaluator.data, BaseExperiment):
             base_experiment_name = evaluator.data.name
@@ -784,7 +784,7 @@ def _EvalCommon(
             with parent_context(parent, state):
                 try:
                     ret = await run_evaluator(experiment, evaluator, 0, [], stream, state, enable_cache)
-                    reporter.report_eval(evaluator, ret, verbose=True, jsonl=False)
+                    reporter.report_eval(evaluator, ret, True, False)
                     return ret
                 finally:
                     if experiment:
@@ -1116,7 +1116,7 @@ class Filter:
     pattern: re.Pattern
 
 
-def serialize_json_with_plain_string(v: Any) -> str:
+def serialize_json_with_plain_string(v: object) -> str:
     if isinstance(v, str):
         return v
     else:
@@ -1377,17 +1377,20 @@ async def _run_evaluator_internal_impl(
                 except Exception as e:
                     raise ValueError(f"When returning a dict, it must be a valid Score object. Got: {result}") from e
 
+            result_list: list[Score]
             if isinstance(result, Iterable):
+                result_list = []
                 for s in result:
                     if not is_score(s):
                         raise ValueError(
                             f"When returning an array of scores, each score must be a valid Score object. Got: {s}"
                         )
-                result = list(result)
+                    result_list.append(s)
             elif is_score(result):
-                result = [result]
+                result_list = [result]
             else:
-                result = [Score(name=name, score=result)]
+                result_list = [Score(name=name, score=result)]
+            result = result_list
 
             def get_other_fields(s):
                 return {k: v for k, v in s.as_dict().items() if k not in ["metadata", "name"]}
@@ -1406,6 +1409,7 @@ async def _run_evaluator_internal_impl(
     scorer_names = [_scorer_name(scorer, i) for i, scorer in enumerate(scorers)]
     unhandled_scores = scorer_names
 
+    resolved_evaluator_parameters: ValidatedParameters | None
     if evaluator.parameter_values is not None:
         resolved_evaluator_parameters = evaluator.parameter_values
     elif isinstance(evaluator.parameters, RemoteEvalParameters):
@@ -1413,7 +1417,7 @@ async def _run_evaluator_internal_impl(
     elif is_eval_parameter_schema(evaluator.parameters):
         resolved_evaluator_parameters = validate_parameters({}, evaluator.parameters)
     else:
-        resolved_evaluator_parameters = evaluator.parameters
+        resolved_evaluator_parameters = None
 
     async def run_evaluator_task(datum, trial_index=0):
         if isinstance(datum, dict):
@@ -1424,20 +1428,20 @@ async def _run_evaluator_internal_impl(
         error = None
         exc_info = None
         scores = {}
-        tags = datum.tags
+        tags: list[str] | None = list(datum.tags) if datum.tags is not None else None
 
         event_dataset = (
             experiment.dataset if experiment else evaluator.data if isinstance(evaluator.data, Dataset) else None
         )
 
-        origin = (
-            {
-                "object_type": "dataset",
-                "object_id": event_dataset.id,
-                "id": datum.id,
-                "created": datum.created,
-                "_xact_id": datum._xact_id,
-            }
+        origin: ObjectReference | None = (
+            ObjectReference(
+                object_type="dataset",
+                object_id=event_dataset.id,
+                id=datum.id,
+                created=datum.created,
+                _xact_id=datum._xact_id,
+            )
             if event_dataset and datum.id and datum._xact_id
             else None
         )
@@ -1454,7 +1458,15 @@ async def _run_evaluator_internal_impl(
             root_span = experiment.start_span(**base_event)
         else:
             # In most cases this will be a no-op span, but if the parent is set, it will use that ctx.
-            root_span = start_span(state=state, **base_event)
+            root_span = start_span(
+                state=state,
+                name="eval",
+                span_attributes={"type": SpanTypeAttribute.EVAL.value},
+                input=datum.input,
+                expected=datum.expected,
+                tags=tags,
+                origin=origin,
+            )
 
         with root_span:
             try:
@@ -1493,7 +1505,7 @@ async def _run_evaluator_internal_impl(
                     hooks.set_span(span)
                     output = await await_or_run(event_loop, evaluator.task, *task_args)
                     span.log(input=task_args[0], output=output)
-                tags = hooks.tags if hooks.tags else None
+                tags = list(hooks.tags) if hooks.tags else None
                 root_span.log(output=output, metadata=metadata, tags=tags)
 
                 # Create trace object for scorers
@@ -1611,6 +1623,7 @@ async def _run_evaluator_internal_impl(
                     )
             except Exception as e:
                 exc_type, exc_value, tb = sys.exc_info()
+                assert exc_type is not None and exc_value is not None
                 root_span.log(error=stringify_exception(exc_type, exc_value, tb))
 
                 error = e

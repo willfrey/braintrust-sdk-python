@@ -223,10 +223,13 @@ def parse_eval_body(request_data: str | bytes | dict) -> ParsedEvalBody:
         parsed_scores = []
         for i, score in enumerate(scores_data):
             try:
+                if not isinstance(score, dict):
+                    raise ValidationError(f"Score at index {i} must be an object")
+                score_dict: dict[str, Any] = score
                 parsed_scores.append(
                     {
-                        "name": score["name"],
-                        "function_id": parse_function_id(score["function_id"], f"scores[{i}]"),
+                        "name": score_dict["name"],
+                        "function_id": parse_function_id(score_dict["function_id"], f"scores[{i}]"),
                     }
                 )
             except ValidationError as e:

@@ -18,7 +18,7 @@ import traceback
 import types
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterator, Mapping, MutableMapping, Sequence
+from collections.abc import Awaitable, Callable, Iterator, Mapping, MutableMapping, Sequence
 from functools import partial, wraps
 from multiprocessing import cpu_count
 from types import TracebackType
@@ -58,6 +58,7 @@ from .db_fields import (
 from .generated_types import (
     AttachmentReference,
     AttachmentStatus,
+    BraintrustAttachmentReference,
     DatasetEvent,
     ExperimentEvent,
     PromptOptions,
@@ -473,7 +474,7 @@ class BraintrustState:
         from braintrust.span_cache import SpanCache
 
         self.span_cache = SpanCache()
-        self._otel_flush_callback: Any | None = None
+        self._otel_flush_callback: Callable[[], Awaitable[None]] | None = None
 
     def reset_login_info(self):
         self.app_url: str | None = None
@@ -532,7 +533,7 @@ class BraintrustState:
 
         return self._context_manager
 
-    def register_otel_flush(self, callback: Any) -> None:
+    def register_otel_flush(self, callback: Callable[[], Awaitable[None]]) -> None:
         """
         Register an OTEL flush callback. This is called by the OTEL integration
         when it initializes a span processor/exporter.
@@ -891,7 +892,7 @@ class _MaskingError:
         self.error_msg = f"ERROR: Failed to mask field '{field_name}' - {error_type}"
 
 
-def _apply_masking_to_field(masking_function: Callable[[Any], Any], data: Any, field_name: str) -> Any:
+def _apply_masking_to_field(masking_function: Callable[[Any], Any], data: object, field_name: str) -> Any:
     """Apply masking function to data and handle errors gracefully.
 
     If the masking function raises an exception, returns an error message.
@@ -1701,9 +1702,12 @@ def init(
         else:
             merged_git_metadata_settings = state.git_metadata_settings
             if git_metadata_settings is not None:
-                merged_git_metadata_settings = GitMetadataSettings.merge(
-                    merged_git_metadata_settings, git_metadata_settings
-                )
+                if merged_git_metadata_settings is not None:
+                    merged_git_metadata_settings = GitMetadataSettings.merge(
+                        merged_git_metadata_settings, git_metadata_settings
+                    )
+                else:
+                    merged_git_metadata_settings = git_metadata_settings
             repo_info_arg = get_repo_info(merged_git_metadata_settings)
 
         if repo_info_arg:
@@ -1717,15 +1721,15 @@ def init(
             args["ancestor_commits"] = list(get_past_n_ancestors())
 
         if dataset is not None:
-            if isinstance(dataset, dict):
+            if isinstance(dataset, Dataset):
+                # Full Dataset object
+                args["dataset_id"] = dataset.id
+                args["dataset_version"] = dataset.version
+            else:
                 # Simple {"id": ..., "version": ...} dict
                 args["dataset_id"] = dataset["id"]
                 if "version" in dataset:
                     args["dataset_version"] = dataset["version"]
-            else:
-                # Full Dataset object
-                args["dataset_id"] = dataset.id
-                args["dataset_version"] = dataset.version
 
         parameters_ref = _get_parameters_ref(parameters)
         if parameters_ref is not None:
@@ -1844,6 +1848,7 @@ def init_dataset(
 def _compute_logger_metadata(project_name: str | None = None, project_id: str | None = None):
     login()
     org_id = _state.org_id
+    assert org_id is not None
     if project_id is None:
         response = _state.app_conn().post_json(
             "api/project/register",
@@ -2048,7 +2053,7 @@ def load_prompt(
     )
 
 
-def _is_parameters_ref(value: Any) -> bool:
+def _is_parameters_ref(value: object) -> bool:
     return isinstance(value, dict) and isinstance(value.get("id"), str)
 
 
@@ -2202,7 +2207,7 @@ def login(
         _state.login(app_url=app_url, api_key=api_key, org_name=org_name, force_login=force_login)
 
 
-def register_otel_flush(callback: Any) -> None:
+def register_otel_flush(callback: Callable[[], Awaitable[None]]) -> None:
     """
     Register a callback to flush OTEL spans. This is called by the OTEL integration
     when it initializes a span processor/exporter.
@@ -3053,7 +3058,7 @@ class Attachment(BaseAttachment):
 
         :param content_type: The MIME type of the file.
         """
-        self._reference: AttachmentReference = {
+        self._reference: BraintrustAttachmentReference = {
             "type": "braintrust_attachment",
             "filename": filename,
             "content_type": content_type,
@@ -3697,6 +3702,8 @@ def _start_span_parent_args(
 
         arg_parent_object_id = LazyValue(compute_parent_object_id, use_mutex=False)
         if parent_components.row_id:
+            assert parent_components.span_id is not None
+            assert parent_components.root_span_id is not None
             arg_parent_span_ids = ParentSpanIds(
                 span_id=parent_components.span_id,
                 root_span_id=parent_components.root_span_id,
@@ -3736,6 +3743,7 @@ class _ExperimentDatasetEvent(TypedDict):
     input: Any | None
     expected: Any | None
     tags: Sequence[str] | None
+    metadata: Any | None
 
 
 class ExperimentDatasetIterator:
@@ -3753,13 +3761,13 @@ class ExperimentDatasetIterator:
 
             output, expected = value.get("output"), value.get("expected")
             ret: _ExperimentDatasetEvent = {
-                    "input": value.get("input"),
-                    "expected": expected if expected is not None else output,
-                    "tags": value.get("tags"),
-                    "metadata": value.get("metadata"),
-                    "id": value["id"],
-                    "_xact_id": value["_xact_id"],
-                }
+                "input": value.get("input"),
+                "expected": expected if expected is not None else output,
+                "tags": value.get("tags"),
+                "metadata": value.get("metadata"),
+                "id": value["id"],
+                "_xact_id": value["_xact_id"],
+            }
             return ret
 
 
@@ -3993,7 +4001,7 @@ class Experiment(ObjectFetcher[ExperimentEvent], Exportable):
         self.flush()
 
         state = self._get_state()
-        project_url = f"{state.app_public_url}/app/{encode_uri_component(state.org_name)}/p/{encode_uri_component(self.project.name)}"
+        project_url = f"{state.app_public_url}/app/{encode_uri_component(state.org_name or '')}/p/{encode_uri_component(self.project.name)}"
         experiment_url = f"{project_url}/experiments/{encode_uri_component(self.name)}"
 
         score_summary = {}
@@ -4836,7 +4844,7 @@ class Dataset(ObjectFetcher[DatasetEvent]):
         # includes the new experiment.
         self.flush()
         state = self._get_state()
-        project_url = f"{state.app_public_url}/app/{encode_uri_component(state.org_name)}/p/{encode_uri_component(self.project.name)}"
+        project_url = f"{state.app_public_url}/app/{encode_uri_component(state.org_name or '')}/p/{encode_uri_component(self.project.name)}"
         dataset_url = f"{project_url}/datasets/{encode_uri_component(self.name)}"
 
         data_summary = None
@@ -5075,7 +5083,9 @@ class Prompt:
 
     @property
     def id(self) -> str:
-        return self._lazy_metadata.get().id
+        result = self._lazy_metadata.get().id
+        assert result is not None
+        return result
 
     @property
     def name(self) -> str:
@@ -5091,11 +5101,14 @@ class Prompt:
 
     @property
     def version(self) -> str:
-        return self._lazy_metadata.get()._xact_id
+        result = self._lazy_metadata.get()._xact_id
+        assert result is not None
+        return result
 
     @property
     def options(self) -> PromptOptions:
-        return self._lazy_metadata.get().prompt_data.options or {}
+        options = self._lazy_metadata.get().prompt_data.options
+        return options if options is not None else {}
 
     # Capture all metadata attributes which aren't covered by existing methods.
     def __getattr__(self, name: str) -> Any:
@@ -5172,11 +5185,11 @@ class Prompt:
         return len(self._make_iter_list())
 
     def __getitem__(self, x):
-        if x == "prompt":
-            return self.prompt.prompt
-        elif x == "chat":
+        if x == "prompt" and isinstance(self.prompt, PromptCompletionBlock):
+            return self.prompt.content
+        elif x == "chat" and isinstance(self.prompt, PromptChatBlock):
             return self.prompt.messages
-        elif x == "tools":
+        elif x == "tools" and isinstance(self.prompt, PromptChatBlock):
             return self.prompt.tools
         else:
             return self.options[x]
@@ -5210,6 +5223,7 @@ class Project:
     @property
     def id(self) -> str:
         self.lazy_init()
+        assert self._id is not None
         return self._id
 
     @property

@@ -83,7 +83,7 @@ def _log_tracing_warning(exc: Exception) -> None:
     log.warning("Error in tracing code", exc_info=exc)
 
 
-def _parse_tool_name(tool_name: Any) -> ParsedToolName:
+def _parse_tool_name(tool_name: object) -> ParsedToolName:
     raw_name = str(tool_name) if tool_name is not None else DEFAULT_TOOL_NAME
 
     if not raw_name.startswith(MCP_TOOL_PREFIX):
@@ -217,7 +217,7 @@ def _wrap_tool_handler(handler: Any, tool_name: Any) -> Any:
         if not active_tool_span.has_span:
             with start_span(
                 name=str(tool_name),
-                span_attributes={"type": SpanTypeAttribute.TOOL},
+                span_attributes={"type": SpanTypeAttribute.TOOL.value},
                 input=args,
             ) as span:
                 result = await handler(args)
@@ -232,7 +232,7 @@ def _wrap_tool_handler(handler: Any, tool_name: Any) -> Any:
         finally:
             active_tool_span.release()
 
-    wrapped_handler._braintrust_wrapped = True
+    setattr(wrapped_handler, "_braintrust_wrapped", True)
     return wrapped_handler
 
 
@@ -272,7 +272,7 @@ class ToolSpanTracker:
 
             tool_span = start_span(
                 name=parsed_tool_name.display_name,
-                span_attributes={"type": SpanTypeAttribute.TOOL},
+                span_attributes={"type": SpanTypeAttribute.TOOL.value},
                 input=getattr(block, "input", None),
                 metadata=metadata,
                 parent=llm_span_export,
@@ -314,13 +314,13 @@ class ToolSpanTracker:
     def pending_task_link_tool_use_ids(self) -> frozenset[str]:
         return frozenset(self._pending_task_link_tool_use_ids)
 
-    def mark_task_started(self, tool_use_id: Any) -> None:
+    def mark_task_started(self, tool_use_id: object) -> None:
         if tool_use_id is None:
             return
 
         self._pending_task_link_tool_use_ids.discard(str(tool_use_id))
 
-    def acquire_span_for_handler(self, tool_name: Any, args: Any) -> _ActiveToolSpan | None:
+    def acquire_span_for_handler(self, tool_name: object, args: object) -> _ActiveToolSpan | None:
         parsed_tool_name = _parse_tool_name(tool_name)
         candidate_names = list(
             dict.fromkeys((parsed_tool_name.raw_name, parsed_tool_name.display_name, str(tool_name)))
@@ -359,7 +359,7 @@ class ToolSpanTracker:
         active_tool_span.span.log(**log_event)
         active_tool_span.span.end(end_time=end_time)
 
-    def get_span_export(self, tool_use_id: Any) -> str | None:
+    def get_span_export(self, tool_use_id: object) -> str | None:
         if tool_use_id is None:
             return None
 
@@ -370,7 +370,7 @@ class ToolSpanTracker:
         return active_tool_span.span.export()
 
 
-def _match_tool_span_for_handler(candidates: list[_ActiveToolSpan], args: Any) -> _ActiveToolSpan | None:
+def _match_tool_span_for_handler(candidates: list[_ActiveToolSpan], args: object) -> _ActiveToolSpan | None:
     if not candidates:
         return None
 
@@ -388,7 +388,7 @@ def _match_tool_span_for_handler(candidates: list[_ActiveToolSpan], args: Any) -
     return candidates[0]
 
 
-def _activate_tool_span_for_handler(tool_name: Any, args: Any) -> _ActiveToolSpan | _NoopActiveToolSpan:
+def _activate_tool_span_for_handler(tool_name: object, args: object) -> _ActiveToolSpan | _NoopActiveToolSpan:
     tool_span_tracker = getattr(_thread_local, "tool_span_tracker", None)
     if tool_span_tracker is None:
         return _NOOP_ACTIVE_TOOL_SPAN
@@ -505,7 +505,7 @@ class TaskEventSpanTracker:
         if task_span is None:
             task_span = start_span(
                 name=self._span_name(message, task_id),
-                span_attributes={"type": SpanTypeAttribute.TASK},
+                span_attributes={"type": SpanTypeAttribute.TASK.value},
                 metadata=self._metadata(message),
                 parent=self._parent_export(message),
             )
@@ -689,7 +689,7 @@ def _create_client_wrapper_class(original_client_class: Any) -> Any:
 
             with start_span(
                 name=CLAUDE_AGENT_TASK_SPAN_NAME,
-                span_attributes={"type": SpanTypeAttribute.TASK},
+                span_attributes={"type": SpanTypeAttribute.TASK.value},
                 input=initial_input,
             ) as span:
                 # If we're capturing async messages, we'll update input after they're consumed
@@ -838,7 +838,7 @@ def _create_llm_span_for_messages(
 
     llm_span = start_span(
         name=ANTHROPIC_MESSAGES_CREATE_SPAN_NAME,
-        span_attributes={"type": SpanTypeAttribute.LLM},
+        span_attributes={"type": SpanTypeAttribute.LLM.value},
         input=input_messages,
         output=outputs,
         metadata={"model": model} if model else None,

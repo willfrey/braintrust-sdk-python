@@ -52,7 +52,7 @@ with tracer.start_as_current_span("basic.otel.example") as main_span:
         model="gpt-3.5-turbo", messages=[{"role": "user", "content": "Hello, world!"}], max_tokens=10
     )
 
-    main_span.set_attribute("openai_response", response.choices[0].message.content)
+    main_span.set_attribute("openai_response", response.choices[0].message.content or "")
     time.sleep(0.5)
 
 # Force flush to ensure spans are sent

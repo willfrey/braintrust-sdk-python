@@ -1,6 +1,7 @@
 import asyncio
 import fnmatch
 import importlib
+import importlib.util
 import logging
 import os
 import sys
@@ -12,6 +13,7 @@ from ..framework import (
     BaseExperiment,
     Evaluator,
     EvaluatorInstance,
+    Filter,
     ReporterDef,
     _evals,
     _set_lazy_load,
@@ -51,7 +53,11 @@ class FileHandle:
                 try:
                     # https://stackoverflow.com/questions/67631/how-can-i-import-a-module-dynamically-given-the-full-path
                     spec = importlib.util.spec_from_file_location("eval", in_file)
+                    if spec is None:
+                        raise ImportError(f"Could not load spec for {in_file}")
                     module = importlib.util.module_from_spec(spec)
+                    if spec.loader is None:
+                        raise ImportError(f"Could not load loader for {in_file}")
                     spec.loader.exec_module(module)
 
                     ret = _evals.copy()
@@ -71,7 +77,7 @@ class EvaluatorOpts:
     no_progress_bars: bool
     terminate_on_failure: bool
     watch: bool
-    filters: list[str]
+    filters: list[Filter]
     list: bool
     jsonl: bool
 
@@ -114,7 +120,7 @@ def update_evaluators(eval_state: EvaluatorState, handles, terminate_on_failure)
 
             if reporter_name in eval_state.reporters:
                 _logger.warning(
-                    f"Reporter {reporter_name} already exists (in {eval_state.reporters[reporter_name].module} and {handle.in_file}). Will skip {reporter_name} in {handle.in_file}."
+                    f"Reporter {reporter_name} already exists (and {handle.in_file}). Will skip {reporter_name} in {handle.in_file}."
                 )
                 continue
 

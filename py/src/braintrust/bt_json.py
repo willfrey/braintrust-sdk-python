@@ -171,7 +171,7 @@ def bt_safe_deep_copy(obj: Any, max_depth: int = 200):
     return _deep_copy_object(obj)
 
 
-def _safe_str(obj: Any) -> str:
+def _safe_str(obj: object) -> str:
     try:
         return str(obj)
     except Exception:

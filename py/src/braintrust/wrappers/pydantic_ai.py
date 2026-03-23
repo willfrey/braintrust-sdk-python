@@ -887,7 +887,7 @@ def _create_tool_spans_from_messages_impl(result: Any) -> None:
                 tool_span.end(end_time=return_ts)
 
 
-def _msg_timestamp(msg: Any) -> float | None:
+def _msg_timestamp(msg: object) -> float | None:
     """Extract epoch-seconds timestamp from a PydanticAI message, or None."""
     ts = getattr(msg, "timestamp", None)
     if ts is None:
@@ -1105,7 +1105,7 @@ def _build_model_metadata(model_name: str | None, provider: str | None, model_se
     return metadata
 
 
-def _parse_model_string(model: Any) -> tuple[str | None, str | None]:
+def _parse_model_string(model: object) -> tuple[str | None, str | None]:
     """Parse model string to extract provider and model name.
 
     Pydantic AI uses format: "provider:model-name" (e.g., "openai:gpt-4o")
@@ -1286,7 +1286,7 @@ def _create_start_producer_wrapper():
     return wrapper
 
 
-def _is_patched(obj: Any) -> bool:
+def _is_patched(obj: object) -> bool:
     """Check if object is already patched.
 
     For classes we check __dict__ directly because getattr walks the MRO.

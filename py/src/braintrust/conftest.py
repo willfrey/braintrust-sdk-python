@@ -50,17 +50,17 @@ def _patch_vcr_aiohttp_stubs():
             return gzip.decompress(body)
         return body
 
-    aiohttp_stubs.MockStream.set_exception = lambda self, exc: None
+    setattr(aiohttp_stubs.MockStream, "set_exception", lambda self, exc: None)
 
     async def patched_text(self, encoding="utf-8", errors="strict"):
         return _decompress_body(self._body).decode(encoding, errors=errors)
 
-    aiohttp_stubs.MockClientResponse.text = patched_text
+    setattr(aiohttp_stubs.MockClientResponse, "text", patched_text)
 
     async def patched_read(self):
         return _decompress_body(self._body)
 
-    aiohttp_stubs.MockClientResponse.read = patched_read
+    setattr(aiohttp_stubs.MockClientResponse, "read", patched_read)
 
     @property
     def cached_content(self):
@@ -71,8 +71,8 @@ def _patch_vcr_aiohttp_stubs():
             self._cached_content = stream
         return self._cached_content
 
-    aiohttp_stubs.MockClientResponse.content = cached_content
-    aiohttp_stubs.MockClientResponse._bt_patched = True
+    setattr(aiohttp_stubs.MockClientResponse, "content", cached_content)
+    setattr(aiohttp_stubs.MockClientResponse, "_bt_patched", True)
 
     # Patch record_response to not consume the response body. VCR's original
     # implementation calls `await response.read()` which exhausts the body,
@@ -103,7 +103,7 @@ def _patch_vcr_aiohttp_stubs():
         new_stream.feed_eof()
         response.content = new_stream
 
-    aiohttp_stubs.record_response = _patched_record_response
+    setattr(aiohttp_stubs, "record_response", _patched_record_response)
 
 
 _patch_vcr_aiohttp_stubs()

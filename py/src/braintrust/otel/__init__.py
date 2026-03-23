@@ -1,7 +1,6 @@
 import logging
 import os
 import warnings
-from typing import Any
 from urllib.parse import urljoin
 
 
@@ -13,6 +12,7 @@ INSTALL_ERR_MSG = (
 try:
     from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.trace import SpanProcessor
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
     OTEL_AVAILABLE = True
@@ -33,6 +33,9 @@ except ImportError:
     class BatchSpanProcessor:
         def __init__(self, *args, **kwargs):
             raise ImportError(INSTALL_ERR_MSG)
+
+    class SpanProcessor:
+        pass
 
     class trace:
         @staticmethod
@@ -57,7 +60,7 @@ def _forward_on_ending(processor, span) -> None:
         on_ending(span)
 
 
-class AISpanProcessor:
+class AISpanProcessor(SpanProcessor):
     """
     A span processor that filters spans to only export filtered telemetry.
 
@@ -331,8 +334,9 @@ class BraintrustSpanProcessor:
 
             if current_span and hasattr(current_span, "attributes") and current_span.attributes:
                 # Check if parent span has braintrust.parent attribute
-                attributes = dict(current_span.attributes)
-                return attributes.get("braintrust.parent")
+                attrs = current_span.attributes
+                get_fn = getattr(attrs, "get", None)
+                return get_fn("braintrust.parent") if callable(get_fn) else None
 
             return None
 
@@ -441,6 +445,8 @@ def context_from_span_export(export_str: str):
     )
 
     # Convert hex strings to OTEL integers
+    assert components.root_span_id is not None
+    assert components.span_id is not None
     trace_id_int = int(components.root_span_id, 16)
     span_id_int = int(components.span_id, 16)
 
@@ -631,13 +637,13 @@ def parent_from_headers(headers: dict[str, str], propagator=None) -> str | None:
         )
         return None
 
-    if braintrust_parent:
+    if braintrust_parent and isinstance(braintrust_parent, str):
         from braintrust.span_identifier_v3 import SpanObjectTypeV3
 
         # Parse braintrust.parent format: "project_id:abc", "project_name:xyz", or "experiment_id:123"
         if braintrust_parent.startswith("project_id:"):
             object_type = SpanObjectTypeV3.PROJECT_LOGS
-            object_id = braintrust_parent[len("project_id:"):]
+            object_id = braintrust_parent[len("project_id:") :]
             if not object_id:
                 logging.error(
                     f"parent_from_headers: Invalid braintrust.parent format (empty project_id): {braintrust_parent}"
@@ -645,7 +651,7 @@ def parent_from_headers(headers: dict[str, str], propagator=None) -> str | None:
                 return None
         elif braintrust_parent.startswith("project_name:"):
             object_type = SpanObjectTypeV3.PROJECT_LOGS
-            project_name = braintrust_parent[len("project_name:"):]
+            project_name = braintrust_parent[len("project_name:") :]
             if not project_name:
                 logging.error(
                     f"parent_from_headers: Invalid braintrust.parent format (empty project_name): {braintrust_parent}"
@@ -654,7 +660,7 @@ def parent_from_headers(headers: dict[str, str], propagator=None) -> str | None:
             compute_args = {"project_name": project_name}
         elif braintrust_parent.startswith("experiment_id:"):
             object_type = SpanObjectTypeV3.EXPERIMENT
-            object_id = braintrust_parent[len("experiment_id:"):]
+            object_id = braintrust_parent[len("experiment_id:") :]
             if not object_id:
                 logging.error(
                     f"parent_from_headers: Invalid braintrust.parent format (empty experiment_id): {braintrust_parent}"
@@ -669,6 +675,8 @@ def parent_from_headers(headers: dict[str, str], propagator=None) -> str | None:
 
     # Create SpanComponentsV4 and export as string
     # Set row_id to enable span_id/root_span_id (required for parent linking)
+    if object_type is None:
+        return None
     components = SpanComponentsV4(
         object_type=object_type,
         object_id=object_id,

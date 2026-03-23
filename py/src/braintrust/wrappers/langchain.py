@@ -16,13 +16,26 @@ try:
     from langchain.schema.output import LLMResult
 except ImportError:
     _logger.warning("Failed to import langchain, using stubs")
-    BaseCallbackHandler = object
-    Document = object
-    AgentAction = object
-    BaseMessage = object
-    LLMResult = object
 
-langchain_parent = contextvars.ContextVar("langchain_current_span", default=None)
+    class BaseCallbackHandler:
+        pass
+
+    class Document:
+        pass
+
+    class AgentAction:
+        pass
+
+    class BaseMessage:
+        def model_dump(self) -> dict:
+            return {}
+
+    class LLMResult:
+        llm_output: dict | None = None
+        generations: list[list[Any]] = []
+
+
+langchain_parent: contextvars.ContextVar[Any] = contextvars.ContextVar("langchain_current_span", default=None)
 
 
 class BraintrustTracer(BaseCallbackHandler):
@@ -49,7 +62,7 @@ class BraintrustTracer(BaseCallbackHandler):
         self.spans[run_id] = span
         return span
 
-    def _end_span(self, run_id, **kwargs: Any) -> Any:
+    def _end_span(self, run_id, **kwargs: Any) -> None:
         assert run_id in self.spans, f"No span exists for run_id {run_id} (this is likely a bug)"
         span = self.spans.pop(run_id)
         span.log(**kwargs)
@@ -68,12 +81,12 @@ class BraintrustTracer(BaseCallbackHandler):
         parent_run_id: UUID | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_span(parent_run_id, run_id, "Chain", input=inputs, metadata={"tags": tags})
 
     def on_chain_end(
         self, outputs: dict[str, Any], *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
-    ) -> Any:
+    ) -> None:
         self._end_span(run_id, output=outputs)
 
     def on_llm_start(
@@ -85,7 +98,7 @@ class BraintrustTracer(BaseCallbackHandler):
         parent_run_id: UUID | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_span(
             parent_run_id,
             run_id,
@@ -103,20 +116,20 @@ class BraintrustTracer(BaseCallbackHandler):
         parent_run_id: UUID | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         self._start_span(
             parent_run_id,
             run_id,
             "Chat Model",
-            input=[[m.dict() for m in batch] for batch in messages],
+            input=[[m.model_dump() for m in batch] for batch in messages],
             metadata={"tags": tags, **kwargs["invocation_params"]},
         )
 
     def on_llm_end(
         self, response: LLMResult, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
-    ) -> Any:
+    ) -> None:
         metrics = {}
-        token_usage = response.llm_output.get("token_usage", {})
+        token_usage = (response.llm_output or {}).get("token_usage", {})
         if "total_tokens" in token_usage:
             metrics["tokens"] = token_usage["total_tokens"]
         if "prompt_tokens" in token_usage:
@@ -124,7 +137,9 @@ class BraintrustTracer(BaseCallbackHandler):
         if "completion_tokens" in token_usage:
             metrics["completion_tokens"] = token_usage["completion_tokens"]
 
-        self._end_span(run_id, output=[[m.dict() for m in batch] for batch in response.generations], metrics=metrics)
+        self._end_span(
+            run_id, output=[[m.model_dump() for m in batch] for batch in response.generations], metrics=metrics
+        )
 
     def on_tool_start(
         self,
@@ -135,16 +150,18 @@ class BraintrustTracer(BaseCallbackHandler):
         parent_run_id: UUID | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> None:
         _logger.warning("Starting tool, but it will not be traced in braintrust (unsupported)")
 
-    def on_tool_end(self, output: str, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any) -> Any:
+    def on_tool_end(self, output: str, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any) -> None:
         pass
 
-    def on_retriever_start(self, query: str, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any) -> Any:
+    def on_retriever_start(
+        self, query: str, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
+    ) -> None:
         _logger.warning("Starting retriever, but it will not be traced in braintrust (unsupported)")
 
     def on_retriever_end(
         self, response: list[Document], *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
-    ) -> Any:
+    ) -> None:
         pass

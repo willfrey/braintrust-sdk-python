@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from braintrust import logger
 from braintrust.logger import start_span
+from braintrust.span_types import SpanTypeAttribute
 from braintrust.test_helpers import init_test_logger
 from braintrust.wrappers.agno import agent as agno_agent_module
 from braintrust.wrappers.agno import model as agno_model_module
@@ -354,7 +355,7 @@ def test_agno_public_run_parent_span_nesting(memory_logger, wrapper, name):
     Component = wrapper(make_fake_component(name))
     instance = Component()
 
-    with start_span(name="outer_sync_parent", type="task"):
+    with start_span(name="outer_sync_parent", type=SpanTypeAttribute.TASK):
         instance.run("hello")
 
     spans = memory_logger.pop()
@@ -376,7 +377,7 @@ async def test_agno_public_arun_parent_span_nesting(memory_logger, wrapper, name
     Component = wrapper(make_fake_component(name))
     instance = Component()
 
-    with start_span(name="outer_async_parent", type="task"):
+    with start_span(name="outer_async_parent", type=SpanTypeAttribute.TASK):
         stream = instance.arun("hello", stream=True)
         if isawaitable(stream):
             stream = await stream

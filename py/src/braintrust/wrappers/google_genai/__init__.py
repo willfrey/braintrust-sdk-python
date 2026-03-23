@@ -251,11 +251,11 @@ def omit(obj: dict[str, Any], keys: Iterable[str]):
     return {k: v for k, v in obj.items() if k not in keys}
 
 
-def is_patched(obj: Any):
+def is_patched(obj: object):
     return getattr(obj, "_braintrust_patched", False)
 
 
-def mark_patched(obj: Any):
+def mark_patched(obj: object):
     return setattr(obj, "_braintrust_patched", True)
 
 

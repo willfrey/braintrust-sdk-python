@@ -3,8 +3,9 @@
 import logging
 from typing import Any, Optional
 
+from braintrust.context import ContextManager as BaseContextManager
 from braintrust.context import ParentSpanIds, SpanInfo
-from braintrust.logger import Span
+from braintrust.logger import SpanImpl
 from opentelemetry import context, trace
 from opentelemetry.trace import SpanContext, TraceFlags
 
@@ -12,7 +13,7 @@ from opentelemetry.trace import SpanContext, TraceFlags
 log = logging.getLogger(__name__)
 
 
-class ContextManager:
+class ContextManager(BaseContextManager):
     """Context manager that uses OTEL's built-in context as single storage."""
 
     def __init__(self):
@@ -38,7 +39,7 @@ class ContextManager:
 
             # If there's a BT span stored AND the current OTEL span is a NonRecordingSpan
             # (which means it's our BT->OTEL wrapper), then return BT span info
-            if bt_span and isinstance(current_span, trace.NonRecordingSpan):
+            if isinstance(bt_span, SpanImpl) and isinstance(current_span, trace.NonRecordingSpan):
                 return SpanInfo(trace_id=bt_span.root_span_id, span_id=bt_span.span_id, span_object=bt_span)
             else:
                 # Return OTEL span info - this is a real OTEL span, not our wrapper
@@ -48,8 +49,9 @@ class ContextManager:
 
         return None
 
-    def set_current_span(self, span: Span) -> Any:
+    def set_current_span(self, span_object: Any) -> Any:
         """Set the current active span in OTEL context."""
+        span = span_object
 
         if _is_otel_span(span):
             # This is an OTEL span - it will manage its own context
@@ -108,6 +110,6 @@ class ContextManager:
         )
 
 
-def _is_otel_span(span: Any) -> bool:
+def _is_otel_span(span: object) -> bool:
     """Check if the span object is an OTEL span."""
     return hasattr(span, "get_span_context")

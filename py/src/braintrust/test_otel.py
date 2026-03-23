@@ -778,7 +778,7 @@ def test_parent_from_headers_with_custom_propagator():
                     trace_id=int(trace_id_list[0], 16),
                     span_id=int(span_id_list[0], 16),
                     is_remote=True,
-                    trace_flags=TraceFlags.SAMPLED,
+                    trace_flags=TraceFlags(TraceFlags.SAMPLED),
                 )
                 span = NonRecordingSpan(span_context)
                 context = trace.set_span_in_context(span, context)

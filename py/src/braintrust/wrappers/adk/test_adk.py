@@ -819,6 +819,7 @@ async def test_async_context_preservation_across_yields():
     import asyncio
 
     from braintrust import start_span
+    from braintrust.span_types import SpanTypeAttribute
     from braintrust.wrappers.adk import aclosing
 
     # Initialize logger
@@ -826,11 +827,11 @@ async def test_async_context_preservation_across_yields():
 
     async def context_switching_generator():
         """Generator that creates spans and yields, potentially switching contexts."""
-        with start_span(name="outer_span", type="task") as outer:
+        with start_span(name="outer_span", type=SpanTypeAttribute.TASK) as outer:
             yield {"event": 1}
             await asyncio.sleep(0.001)  # Force context switch
 
-            with start_span(name="inner_span", type="task") as inner:
+            with start_span(name="inner_span", type=SpanTypeAttribute.TASK) as inner:
                 inner.log(output={"data": "test"})
                 yield {"event": 2}
                 await asyncio.sleep(0.001)  # Another context switch

@@ -145,6 +145,7 @@ class CompletionWrapper:
 
         try:
             start = time.time()
+            assert self.completion_fn is not None
             completion_response = self.completion_fn(*args, **kwargs)
             # if hasattr(completion_response, "parse"):
             #     raw_response = completion_response.parse()
@@ -175,6 +176,7 @@ class CompletionWrapper:
 
         try:
             start = time.time()
+            assert self.acompletion_fn is not None
             completion_response = await self.acompletion_fn(*args, **kwargs)
 
             # if hasattr(completion_response, "parse"):
@@ -323,6 +325,7 @@ class ResponsesWrapper:
 
         try:
             start = time.time()
+            assert self.responses_fn is not None
             response = self.responses_fn(*args, **kwargs)
 
             if is_streaming:
@@ -346,6 +349,7 @@ class ResponsesWrapper:
 
         try:
             start = time.time()
+            assert self.aresponses_fn is not None
             response = await self.aresponses_fn(*args, **kwargs)
 
             if is_streaming:
@@ -432,6 +436,7 @@ class EmbeddingWrapper:
                 dict(name="Embedding", span_attributes={"type": SpanTypeAttribute.LLM}), updated_span_payload
             )
         ) as span:
+            assert self.embedding_fn is not None
             embedding_response = self.embedding_fn(*args, **kwargs)
             log_response = _try_to_dict(embedding_response)
             self._process_output(log_response, span)
@@ -464,6 +469,7 @@ class ModerationWrapper:
                 dict(name="Moderation", span_attributes={"type": SpanTypeAttribute.LLM}), updated_span_payload
             )
         ) as span:
+            assert self.moderation_fn is not None
             moderation_response = self.moderation_fn(*args, **kwargs)
             log_response = _try_to_dict(moderation_response)
             self._process_output(log_response, span)

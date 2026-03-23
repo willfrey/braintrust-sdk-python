@@ -8,11 +8,11 @@ def omit(obj: dict[str, Any], keys: list[str]):
     return {k: v for k, v in obj.items() if k not in keys}
 
 
-def is_patched(obj: Any) -> bool:
+def is_patched(obj: object) -> bool:
     return getattr(obj, "_braintrust_patched", False)
 
 
-def mark_patched(obj: Any):
+def mark_patched(obj: object):
     setattr(obj, "_braintrust_patched", True)
 
 
@@ -70,7 +70,7 @@ AGNO_METRICS_MAP = {
 
 def extract_metadata(instance: Any, component: str) -> dict[str, Any]:
     """Extract metadata from any component (model, agent, team)."""
-    metadata = {"component": component}
+    metadata: dict[str, Any] = {"component": component}
 
     # Component-specific name fields
     if component == "model":
@@ -103,7 +103,7 @@ def extract_metadata(instance: Any, component: str) -> dict[str, Any]:
     return metadata
 
 
-def parse_metrics_from_agno(usage: Any) -> dict[str, Any]:
+def parse_metrics_from_agno(usage: object) -> dict[str, Any]:
     """Parse metrics from Agno usage object, following OpenAI wrapper pattern."""
     metrics = {}
 
@@ -124,7 +124,7 @@ def parse_metrics_from_agno(usage: Any) -> dict[str, Any]:
     return metrics
 
 
-def extract_metrics(result: Any, messages: list | None = None) -> dict[str, Any]:
+def extract_metrics(result: Any, messages: list | None = None) -> dict[str, Any] | None:
     """
     Unified metrics extraction for all components.
 
@@ -198,7 +198,7 @@ def _aggregate_metrics(target: dict[str, Any], source: dict[str, Any]) -> None:
 
 def _aggregate_model_chunks(chunks: list[Any]) -> dict[str, Any]:
     """Aggregate ModelResponse chunks from invoke_stream into a complete response."""
-    aggregated = {
+    aggregated: dict[str, Any] = {
         "content": "",
         "reasoning_content": "",
         "tool_calls": [],
@@ -260,7 +260,7 @@ def _aggregate_response_stream_chunks(chunks: list[Any]) -> dict[str, Any]:
 
     This is more robust than _aggregate_model_chunks as it handles different event types.
     """
-    aggregated = {
+    aggregated: dict[str, Any] = {
         "content": "",
         "reasoning_content": "",
         "tool_calls": [],
@@ -337,7 +337,7 @@ def _aggregate_response_stream_chunks(chunks: list[Any]) -> dict[str, Any]:
 
 def _aggregate_agent_chunks(chunks: list[Any]) -> dict[str, Any]:
     """Aggregate BaseAgentRunEvent/BaseTeamRunEvent chunks into a complete response."""
-    aggregated = {
+    aggregated: dict[str, Any] = {
         "content": "",
         "reasoning_content": "",
         "model": "",
@@ -395,7 +395,7 @@ def _aggregate_agent_chunks(chunks: list[Any]) -> dict[str, Any]:
 
 def _aggregate_workflow_chunks(chunks: list[Any], workflow_run_response: Any | None = None) -> dict[str, Any]:
     """Aggregate workflow/step events into a final workflow-style response."""
-    aggregated = {
+    aggregated: dict[str, Any] = {
         "content": "",
         "status": None,
         "metrics": None,
@@ -441,11 +441,11 @@ def _aggregate_workflow_chunks(chunks: list[Any], workflow_run_response: Any | N
     return {k: v for k, v in aggregated.items() if v not in (None, "")}
 
 
-def is_sync_iterator(result: Any) -> bool:
+def is_sync_iterator(result: object) -> bool:
     return hasattr(result, "__iter__") and hasattr(result, "__next__")
 
 
-def is_async_iterator(result: Any) -> bool:
+def is_async_iterator(result: object) -> bool:
     return hasattr(result, "__aiter__") and hasattr(result, "__anext__")
 
 

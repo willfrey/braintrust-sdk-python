@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 import braintrust
+from braintrust.span_types import SpanTypeAttribute
 from temporalio import activity, workflow
 from temporalio.common import RetryPolicy
 
@@ -25,7 +26,7 @@ async def add_ten(input: TaskInput) -> int:
     await asyncio.sleep(0.5)
 
     # Create child span within activity to test nested tracing
-    with braintrust.start_span(name="validate_input", type="task") as span:
+    with braintrust.start_span(name="validate_input", type=SpanTypeAttribute.TASK) as span:
         span.log(input={"value": input.value, "operation": "add_ten"})
         await asyncio.sleep(0.2)
 
@@ -43,7 +44,7 @@ async def multiply_by_two(input: TaskInput) -> int:
     await asyncio.sleep(0.3)
 
     # Create child span to demonstrate nested tracing
-    with braintrust.start_span(name="perform_multiplication", type="task") as span:
+    with braintrust.start_span(name="perform_multiplication", type=SpanTypeAttribute.TASK) as span:
         span.log(input={"value": input.value, "multiplier": 2})
         await asyncio.sleep(0.2)
         result = input.value * 2
@@ -76,7 +77,7 @@ async def add_three_local(input: TaskInput) -> int:
     await asyncio.sleep(0.1)
 
     # Create child span to verify local activity tracing works
-    with braintrust.start_span(name="local_calculation", type="task") as span:
+    with braintrust.start_span(name="local_calculation", type=SpanTypeAttribute.TASK) as span:
         span.log(input={"value": input.value, "operation": "add_three_local"})
         await asyncio.sleep(0.05)
         result = input.value + 3

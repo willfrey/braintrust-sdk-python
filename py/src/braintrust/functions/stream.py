@@ -7,7 +7,7 @@ with utility methods to make them easy to log and convert into various formats.
 
 import dataclasses
 import json
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from itertools import tee
 from typing import Literal, Union
 
@@ -88,7 +88,7 @@ class BraintrustStream:
     with utility methods to make them easy to log and convert into various formats.
     """
 
-    def __init__(self, base_stream: SSEClient | list[BraintrustStreamChunk]):
+    def __init__(self, base_stream: SSEClient | list[BraintrustStreamChunk] | Iterator[BraintrustStreamChunk]):
         """
         Initialize a BraintrustStream.
 

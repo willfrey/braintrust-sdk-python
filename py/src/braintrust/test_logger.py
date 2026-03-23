@@ -1156,7 +1156,7 @@ def test_span_link_with_resolved_experiment(with_simulate_login, with_memory_log
     assert eid == "test-experiment-id"
 
     span = experiment.start_span(name="test-span")
-    span.parent_object_id = id_lazy_value
+    setattr(span, "parent_object_id", id_lazy_value)
     span.end()
 
     link = span.link()
@@ -1197,7 +1197,7 @@ def test_experiment_span_link_uses_env_vars_when_logged_out(with_memory_logger):
 
         # Create span with resolved experiment ID
         span = experiment.start_span(name="test-span")
-        span.parent_object_id = LazyValue(lambda: "test-exp-id", use_mutex=False)
+        setattr(span, "parent_object_id", LazyValue(lambda: "test-exp-id", use_mutex=False))
         span.end()
 
         link = span.link()
@@ -3622,8 +3622,10 @@ def test_span_exit_logs_exception_group_sub_exceptions(with_memory_logger):
     """Verify sub-exceptions are captured when an ExceptionGroup propagates through span.__exit__."""
     init_test_logger(__name__)
 
+    current_logger = braintrust.current_logger()
+    assert current_logger is not None
     with pytest.raises(exceptiongroup.ExceptionGroup):
-        with braintrust.current_logger().start_span(name="eg-span"):
+        with current_logger.start_span(name="eg-span"):
             raise _raise_test_exception_group()
 
     logs = with_memory_logger.pop()

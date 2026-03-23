@@ -1,8 +1,9 @@
 import dataclasses
 import json
-from typing import Any, Union, get_origin
+from typing import Union, get_origin
 
 
+@dataclasses.dataclass
 class SerializableDataClass:
     def as_dict(self):
         """Serialize the object to a dictionary."""
@@ -37,7 +38,8 @@ class SerializableDataClass:
             if isinstance(v, dict) and isinstance(field_type, type) and issubclass(field_type, SerializableDataClass):
                 filtered[k] = field_type.from_dict_deep(v)
             elif get_origin(field_type) == Union:
-                for t in field_type.__args__:
+                type_args = getattr(field_type, "__args__", None) or []
+                for t in type_args:
                     if t == type(None) and v is None:
                         filtered[k] = None
                         break
@@ -49,14 +51,17 @@ class SerializableDataClass:
                             pass
                 else:
                     filtered[k] = v
-            elif (
-                isinstance(v, list)
-                and get_origin(field_type) == list
-                and len(field_type.__args__) == 1
-                and isinstance(field_type.__args__[0], type)
-                and issubclass(field_type.__args__[0], SerializableDataClass)
-            ):
-                filtered[k] = [field_type.__args__[0].from_dict_deep(i) for i in v]
+            elif isinstance(v, list) and get_origin(field_type) == list:
+                list_args = getattr(field_type, "__args__", None)
+                if (
+                    list_args is not None
+                    and len(list_args) == 1
+                    and isinstance(list_args[0], type)
+                    and issubclass(list_args[0], SerializableDataClass)
+                ):
+                    filtered[k] = [list_args[0].from_dict_deep(i) for i in v]
+                else:
+                    filtered[k] = v
             else:
                 filtered[k] = v
         return cls(**filtered)

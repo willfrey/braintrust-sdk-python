@@ -88,11 +88,11 @@ def _is_model_parameter(schema: Any) -> TypeGuard[ModelParameter]:
     return isinstance(schema, dict) and schema.get("type") == "model"
 
 
-def _is_pydantic_model(schema: Any) -> bool:
+def _is_pydantic_model(schema: object) -> TypeGuard[type[Any]]:
     return hasattr(schema, "parse_obj") or hasattr(schema, "model_validate")
 
 
-def _get_pydantic_fields(schema: Any) -> dict[str, Any]:
+def _get_pydantic_fields(schema: object) -> dict[str, Any]:
     model_fields = getattr(schema, "model_fields", None)
     if model_fields is not None:
         return model_fields
@@ -149,27 +149,29 @@ def _resolve_local_json_schema_refs(
     return {key: _resolve_local_json_schema_refs(value, root, resolving) for key, value in node.items()}
 
 
-def _serialize_pydantic_parameter_schema(schema: Any) -> dict[str, Any]:
+def _serialize_pydantic_parameter_schema(schema: object) -> dict[str, Any]:
     schema_json = _pydantic_to_json_schema(schema)
-    schema_json = _resolve_local_json_schema_refs(schema_json, schema_json)
-    schema_json.pop("$defs", None)
-    schema_json.pop("definitions", None)
+    resolved = _resolve_local_json_schema_refs(schema_json, schema_json)
+    if not isinstance(resolved, dict):
+        raise TypeError(f"Expected dict after resolving JSON schema refs, got {type(resolved)}")
+    resolved.pop("$defs", None)
+    resolved.pop("definitions", None)
     fields = _get_pydantic_fields(schema)
     if len(fields) == 1 and "value" in fields:
-        properties = schema_json.get("properties")
+        properties = resolved.get("properties")
         if isinstance(properties, dict) and isinstance(properties.get("value"), dict):
             return dict(properties["value"])
-    return schema_json
+    return resolved
 
 
-def _pydantic_field_required(field: Any) -> bool:
+def _pydantic_field_required(field: object) -> bool:
     is_required = getattr(field, "is_required", None)
     if callable(is_required):
         return bool(is_required())
     return bool(getattr(field, "required", False))
 
 
-def is_eval_parameter_schema(schema: Any) -> bool:
+def is_eval_parameter_schema(schema: object) -> bool:
     if isinstance(schema, RemoteEvalParameters):
         return True
     if not isinstance(schema, dict):
@@ -290,7 +292,7 @@ def _validate_local_parameters(
                     elif hasattr(schema, "parse_obj"):
                         result[name] = schema.parse_obj({"value": value}).value
                     else:
-                        result[name] = schema.model_validate({"value": value}).value
+                        result[name] = getattr(schema, "model_validate")({"value": value}).value
                 else:
                     if value is None:
                         try:
@@ -300,7 +302,7 @@ def _validate_local_parameters(
                     elif hasattr(schema, "parse_obj"):
                         result[name] = schema.parse_obj(value)
                     else:
-                        result[name] = schema.model_validate(value)
+                        result[name] = getattr(schema, "model_validate")(value)
             else:
                 result[name] = value
         except JSONSchemaValidationError as exc:
@@ -416,10 +418,10 @@ def parameters_to_json_schema(parameters: EvalParameters) -> ParametersSchema:
                 property_schema["description"] = schema["description"]
             properties[name] = property_schema
         elif _is_model_parameter(schema):
-            property_schema = {
-                    "type": "string",
-                    "x-bt-type": "model",
-                }
+            property_schema: dict[str, Any] = {
+                "type": "string",
+                "x-bt-type": "model",
+            }
             if "default" in schema:
                 property_schema["default"] = schema.get("default")
             if schema.get("description") is not None:

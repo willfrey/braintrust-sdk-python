@@ -249,6 +249,7 @@ class ClaudeAgentSdkCassetteTransport(Transport):
             return
 
         recorded = await self._wait_for_event("write")
+        assert recorded is not None
         actual_raw = _normalize_write(data)
         actual = _normalize_write(data, sanitize=True)
         expected = _normalize_for_match(recorded["payload"])

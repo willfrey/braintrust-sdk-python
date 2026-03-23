@@ -104,18 +104,18 @@ def init_test_logger(project_name: str):
     l._lazy_metadata = lazy_metadata  # Skip actual login by setting fake metadata directly
 
     # Replace the global _compute_logger_metadata function with a resolved LazyValue
-    def fake_compute_logger_metadata(project_name=None, project_id=None):
+    def fake_compute_logger_metadata(project_name: str | None = None, project_id: str | None = None):
         if project_id:
-            project_metadata = ObjectMetadata(id=project_id, name=project_name, full_info=dict())
+            project_metadata = ObjectMetadata(id=project_id, name=project_name or "", full_info=dict())
         else:
-            project_metadata = ObjectMetadata(id=project_name, name=project_name, full_info=dict())
+            project_metadata = ObjectMetadata(id=project_name or "", name=project_name or "", full_info=dict())
         return OrgProjectMetadata(org_id=TEST_ORG_ID, project=project_metadata)
 
-    logger._compute_logger_metadata = fake_compute_logger_metadata
+    logger._compute_logger_metadata = fake_compute_logger_metadata  # type: ignore[assignment]
     return l
 
 
-def init_test_exp(experiment_name: str, project_name: str = None):
+def init_test_exp(experiment_name: str, project_name: str | None = None):
     """
     Initialize an experiment for testing with fake project and experiment metadata.
 

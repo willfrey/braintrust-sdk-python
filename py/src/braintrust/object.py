@@ -1,3 +1,5 @@
+from typing import Any
+
 from .generated_types import DatasetEvent
 
 
@@ -14,7 +16,7 @@ def ensure_dataset_record(r: DatasetEvent, legacy: bool) -> DatasetEvent:
 def ensure_legacy_dataset_record(r: DatasetEvent) -> DatasetEvent:
     if "output" in r:
         return r
-    row = r.copy()
+    row: Any = r.copy()
     row["output"] = row.pop("expected")
     return row
 
@@ -22,6 +24,6 @@ def ensure_legacy_dataset_record(r: DatasetEvent) -> DatasetEvent:
 def ensure_new_dataset_record(r: DatasetEvent) -> DatasetEvent:
     if "expected" in r:
         return r
-    row = r.copy()
+    row: Any = r.copy()
     row["expected"] = row.pop("output")
     return row

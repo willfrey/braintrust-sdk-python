@@ -4,6 +4,7 @@ import warnings
 from contextlib import contextmanager
 
 from braintrust.logger import NOOP_SPAN, log_exc_info_to_span, start_span
+from braintrust.span_types import SpanTypeAttribute
 from braintrust.wrappers._anthropic_utils import Wrapper, extract_anthropic_usage, finalize_anthropic_tokens
 from wrapt import wrap_function_wrapper
 
@@ -221,6 +222,7 @@ class TracedMessageStreamManager(Wrapper):
     def __close(self, exc_type, exc_value, traceback):
         with _catch_exceptions():
             tms = self.__traced_message_stream
+            assert tms is not None
             msg = tms._get_final_traced_message()
             if msg:
                 ttft = tms._get_time_to_first_token()
@@ -308,7 +310,7 @@ def _start_span(name, kwargs):
     with _catch_exceptions():
         _input = _get_input_from_kwargs(kwargs)
         metadata = _get_metadata_from_kwargs(kwargs)
-        return start_span(name=name, type="llm", metadata=metadata, input=_input)
+        return start_span(name=name, type=SpanTypeAttribute.LLM, metadata=metadata, input=_input)
 
     # if this failed, maintain the API.
     return NOOP_SPAN
@@ -418,7 +420,7 @@ def patch_anthropic() -> bool:
 
         wrap_function_wrapper("anthropic", "Anthropic.__init__", _anthropic_init_wrapper)
         wrap_function_wrapper("anthropic", "AsyncAnthropic.__init__", _async_anthropic_init_wrapper)
-        anthropic.__braintrust_wrapped__ = True
+        setattr(anthropic, "__braintrust_wrapped__", True)
         return True
 
     except ImportError:

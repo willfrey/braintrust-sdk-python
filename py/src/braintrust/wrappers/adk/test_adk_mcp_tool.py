@@ -197,7 +197,7 @@ async def test_mcp_tool_async_context_preservation():
     from braintrust.wrappers.adk import wrap_mcp_tool
 
     # Track context switches
-    context_var = contextvars.ContextVar("test_context", default=None)
+    context_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("test_context", default=None)
 
     class MockMcpTool:
         def __init__(self):
@@ -322,8 +322,9 @@ async def test_real_context_loss_with_braintrust_spans():
     async def problematic_generator():
         """Generator that creates a span and yields, simulating the Flow behavior."""
         from braintrust import start_span
+        from braintrust.span_types import SpanTypeAttribute
 
-        with start_span(name="test_span", type="task") as span:
+        with start_span(name="test_span", type=SpanTypeAttribute.TASK) as span:
             # Yield some events
             yield {"event": 1}
             await asyncio.sleep(0.001)

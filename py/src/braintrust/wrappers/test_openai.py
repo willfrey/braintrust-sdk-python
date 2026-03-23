@@ -1,6 +1,5 @@
 import asyncio
 import time
-from typing import Any
 
 import braintrust
 import openai
@@ -9,9 +8,19 @@ from braintrust import logger, wrap_openai
 from braintrust.oai import ChatCompletionWrapper
 from braintrust.test_helpers import assert_dict_matches, init_test_logger
 from braintrust.wrappers.test_utils import assert_metrics_are_valid, run_in_subprocess, verify_autoinstrument_script
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, AsyncStream
 from openai._types import NOT_GIVEN
+from openai.types.responses import Response, ResponseOutputMessage, ResponseOutputText, ResponseTextDeltaEvent
 from pydantic import BaseModel
+
+
+def _extract_response_text(response: Response) -> str:
+    """Extract text from the first output message of a Response."""
+    msg = response.output[0]
+    assert isinstance(msg, ResponseOutputMessage), f"Expected ResponseOutputMessage, got {type(msg)}"
+    block = msg.content[0]
+    assert isinstance(block, ResponseOutputText), f"Expected ResponseOutputText, got {type(block)}"
+    return block.text
 
 
 TEST_ORG_ID = "test-org-openai-py-tracing"
@@ -31,18 +40,43 @@ def memory_logger():
 def test_tracing_processor_sets_current_span(memory_logger):
     """Ensure that on_trace_start sets the span as current so nested spans work."""
     pytest.importorskip("agents", reason="agents package not available")
+    from agents import tracing as agents_tracing
     from braintrust.wrappers.openai import BraintrustTracingProcessor
 
     assert not memory_logger.pop()
     processor = BraintrustTracingProcessor()
 
-    class DummyTrace:
+    class DummyTrace(agents_tracing.Trace):
         def __init__(self):
-            self.trace_id = "test-trace-id"
-            self.name = "test-trace"
+            self._trace_id = "test-trace-id"
+            self._name = "test-trace"
+
+        @property
+        def trace_id(self) -> str:
+            return self._trace_id
+
+        @property
+        def name(self) -> str:
+            return self._name
+
+        @property
+        def tracing_api_key(self) -> str | None:
+            return None
 
         def export(self):
             return {"group_id": "group", "metadata": {"foo": "bar"}}
+
+        def start(self, mark_as_current: bool = False):
+            pass
+
+        def finish(self, reset_current: bool = False):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
 
     trace = DummyTrace()
 
@@ -110,7 +144,7 @@ def test_openai_responses_metrics(memory_logger):
     assert unwrapped_response
     assert unwrapped_response.output
     assert len(unwrapped_response.output) > 0
-    unwrapped_content = unwrapped_response.output[0].content[0].text
+    unwrapped_content = _extract_response_text(unwrapped_response)
 
     # No spans should be generated with unwrapped client
     assert not memory_logger.pop()
@@ -129,7 +163,7 @@ def test_openai_responses_metrics(memory_logger):
     # Extract content from output field
     assert response.output
     assert len(response.output) > 0
-    wrapped_content = response.output[0].content[0].text
+    wrapped_content = _extract_response_text(response)
 
     # Both should contain a numeric response for the math question
     assert "24" in unwrapped_content or "twenty-four" in unwrapped_content.lower()
@@ -480,6 +514,7 @@ def test_openai_chat_with_system_prompt(memory_logger):
 
         assert response
         assert response.choices
+        assert response.choices[0].message.content is not None
         assert "24" in response.choices[0].message.content
 
         if not is_wrapped:
@@ -621,7 +656,7 @@ async def test_openai_responses_async(memory_logger):
         assert len(resp.output) > 0
 
         # Extract the text from the output
-        content = resp.output[0].content[0].text
+        content = _extract_response_text(resp)
 
         # Verify response contains correct answer
         assert "24" in content or "twenty-four" in content.lower()
@@ -794,6 +829,7 @@ async def test_openai_chat_async_with_system_prompt(memory_logger):
 
         assert response
         assert response.choices
+        assert response.choices[0].message.content is not None
         assert "24" in response.choices[0].message.content
 
         if not is_wrapped:
@@ -1002,7 +1038,7 @@ async def test_openai_response_streaming_async(memory_logger):
 
         chunks = []
         async for chunk in stream:
-            if chunk.type == "response.output_text.delta":
+            if isinstance(chunk, ResponseTextDeltaEvent):
                 chunks.append(chunk.delta)
         end = time.time()
         output = "".join(chunks)
@@ -1134,7 +1170,7 @@ def test_openai_responses_not_given_filtering(memory_logger):
     assert response
     assert response.output
     assert len(response.output) > 0
-    content = response.output[0].content[0].text
+    content = _extract_response_text(response)
     assert "24" in content or "twenty-four" in content.lower()
 
     # Check the logged span
@@ -1227,8 +1263,9 @@ def test_openai_responses_with_raw_response_create(memory_logger):
     )
     assert raw.headers  # HTTP response headers are accessible
     response = raw.parse()
+    assert isinstance(response, Response)
     assert response.output
-    content = response.output[0].content[0].text
+    content = _extract_response_text(response)
     assert "24" in content or "twenty-four" in content.lower()
     assert not memory_logger.pop()
 
@@ -1245,8 +1282,9 @@ def test_openai_responses_with_raw_response_create(memory_logger):
     # The raw HTTP response (with headers) must be returned to the caller.
     assert raw.headers
     response = raw.parse()
+    assert isinstance(response, Response)
     assert response.output
-    content = response.output[0].content[0].text
+    content = _extract_response_text(response)
     assert "24" in content or "twenty-four" in content.lower()
 
     # A span must have been recorded with correct metrics and metadata.
@@ -1278,7 +1316,7 @@ def test_openai_responses_with_raw_response_create_stream(memory_logger):
     assert raw.headers
     chunks = []
     for chunk in raw.parse():
-        if chunk.type == "response.output_text.delta":
+        if isinstance(chunk, ResponseTextDeltaEvent):
             chunks.append(chunk.delta)
     assert "24" in "".join(chunks) or "twenty-four" in "".join(chunks).lower()
     assert not memory_logger.pop()
@@ -1296,7 +1334,7 @@ def test_openai_responses_with_raw_response_create_stream(memory_logger):
     assert stream.response  # SDK-specific attribute preserved
     chunks = []
     for chunk in stream:
-        if chunk.type == "response.output_text.delta":
+        if isinstance(chunk, ResponseTextDeltaEvent):
             chunks.append(chunk.delta)
     end = time.time()
     assert "24" in "".join(chunks) or "twenty-four" in "".join(chunks).lower()
@@ -1366,8 +1404,9 @@ async def test_openai_responses_with_raw_response_async(memory_logger):
     )
     assert raw.headers
     response = raw.parse()
+    assert isinstance(response, Response)
     assert response.output
-    content = response.output[0].content[0].text
+    content = _extract_response_text(response)
     assert "24" in content or "twenty-four" in content.lower()
     assert not memory_logger.pop()
 
@@ -1382,8 +1421,9 @@ async def test_openai_responses_with_raw_response_async(memory_logger):
 
     assert raw.headers
     response = raw.parse()
+    assert isinstance(response, Response)
     assert response.output
-    content = response.output[0].content[0].text
+    content = _extract_response_text(response)
     assert "24" in content or "twenty-four" in content.lower()
 
     spans = memory_logger.pop()
@@ -1413,8 +1453,10 @@ async def test_openai_responses_with_raw_response_create_stream_async(memory_log
     )
     assert raw.headers
     chunks = []
-    async for chunk in raw.parse():
-        if chunk.type == "response.output_text.delta":
+    stream = raw.parse()
+    assert isinstance(stream, AsyncStream)
+    async for chunk in stream:
+        if isinstance(chunk, ResponseTextDeltaEvent):
             chunks.append(chunk.delta)
     assert "24" in "".join(chunks) or "twenty-four" in "".join(chunks).lower()
     assert not memory_logger.pop()
@@ -1432,7 +1474,7 @@ async def test_openai_responses_with_raw_response_create_stream_async(memory_log
     assert stream.response  # SDK-specific attribute preserved
     chunks = []
     async for chunk in stream:
-        if chunk.type == "response.output_text.delta":
+        if isinstance(chunk, ResponseTextDeltaEvent):
             chunks.append(chunk.delta)
     end = time.time()
     assert "24" in "".join(chunks) or "twenty-four" in "".join(chunks).lower()
@@ -1893,7 +1935,7 @@ async def test_agents_tool_openai_nested_spans(memory_logger):
 def test_braintrust_tracing_processor_trace_metadata_logging(memory_logger):
     """Test that trace metadata flows through to root span via on_trace_end."""
     pytest.importorskip("agents", reason="agents package not available")
-
+    from agents import tracing as agents_tracing
     from braintrust.wrappers.openai import BraintrustTracingProcessor
 
     assert not memory_logger.pop()
@@ -1901,14 +1943,38 @@ def test_braintrust_tracing_processor_trace_metadata_logging(memory_logger):
     processor = BraintrustTracingProcessor()
 
     # Mock trace with metadata (simulates native trace() API)
-    class MockTrace:
+    class MockTrace(agents_tracing.Trace):
         def __init__(self, trace_id, name, metadata):
-            self.trace_id = trace_id
-            self.name = name
+            self._trace_id = trace_id
+            self._name = name
             self.metadata = metadata
 
+        @property
+        def trace_id(self) -> str:
+            return self._trace_id
+
+        @property
+        def name(self) -> str:
+            return self._name
+
+        @property
+        def tracing_api_key(self) -> str | None:
+            return None
+
         def export(self):
-            return {"group_id": self.trace_id, "metadata": self.metadata}
+            return {"group_id": self._trace_id, "metadata": self.metadata}
+
+        def start(self, mark_as_current: bool = False):
+            pass
+
+        def finish(self, reset_current: bool = False):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
 
     trace = MockTrace("test-trace", "Test Trace", {"conversation_id": "test-12345"})
 

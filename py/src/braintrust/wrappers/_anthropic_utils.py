@@ -6,7 +6,7 @@ from typing import Any
 class Wrapper:
     """Base wrapper class with __getattr__ delegation to preserve original types."""
 
-    def __init__(self, wrapped: Any):
+    def __init__(self, wrapped: object):
         self.__wrapped = wrapped
 
     def __getattr__(self, name: str) -> Any:

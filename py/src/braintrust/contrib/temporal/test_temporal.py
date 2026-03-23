@@ -20,6 +20,7 @@ import temporalio.testing
 import temporalio.worker
 import temporalio.workflow
 from braintrust.contrib.temporal import BraintrustInterceptor, BraintrustPlugin
+from braintrust.span_types import SpanTypeAttribute
 from braintrust.test_helpers import init_test_logger
 from temporalio.common import RetryPolicy
 from temporalio.worker import Worker
@@ -298,7 +299,7 @@ class TestBraintrustPluginIntegration:
         the execution chain.
         """
         # Create a parent span at the client level
-        with braintrust.start_span(name="test.client_operation", type="task") as parent_span:
+        with braintrust.start_span(name="test.client_operation", type=SpanTypeAttribute.TASK) as parent_span:
             parent_context = parent_span.export()
 
             # Create worker with BraintrustPlugin
@@ -469,7 +470,7 @@ class TestBraintrustPluginIntegration:
             plugins=[BraintrustPlugin(logger=memory_logger)],
         ):
             # Create a parent span at the client level
-            with braintrust.start_span(name="test.client_with_plugin", type="task") as parent_span:
+            with braintrust.start_span(name="test.client_with_plugin", type=SpanTypeAttribute.TASK) as parent_span:
                 parent_context = parent_span.export()
 
                 # Execute workflow - plugin should inject span context via client interceptor
