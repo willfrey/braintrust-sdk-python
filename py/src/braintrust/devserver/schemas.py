@@ -2,7 +2,11 @@ import json
 from collections.abc import Sequence
 from typing import Any, Union, get_args, get_origin, get_type_hints
 
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, TypeGuard
+
+
+def _is_str_dict(value: object) -> TypeGuard[dict[str, Any]]:
+    return isinstance(value, dict)
 
 
 # This is not beautiful code, but it saves us from introducing Pydantic as a dependency, and it is fairly
@@ -174,7 +178,7 @@ def parse_function_id(data: Any, path: str = "function") -> ParsedFunctionId:
     raise ValidationError(f"{path} must specify function_id, name, prompt_session_id, or inline_code")
 
 
-def parse_eval_body(request_data: str | bytes | dict) -> ParsedEvalBody:
+def parse_eval_body(request_data: str | bytes | dict[str, Any]) -> ParsedEvalBody:
     """
     Parse request body for eval execution.
 
@@ -184,7 +188,7 @@ def parse_eval_body(request_data: str | bytes | dict) -> ParsedEvalBody:
     # Handle different input types
     if isinstance(request_data, (str, bytes)):
         try:
-            data = json.loads(request_data)
+            data: dict[str, Any] = json.loads(request_data)
         except json.JSONDecodeError as e:
             raise ValidationError(f"Invalid JSON: {e}")
     else:
@@ -215,7 +219,7 @@ def parse_eval_body(request_data: str | bytes | dict) -> ParsedEvalBody:
         parsed["data"] = data["data"]
 
     if "scores" in data:
-        scores_data = data["scores"]
+        scores_data: Any = data["scores"]
         if not isinstance(scores_data, list):
             raise ValidationError("scores must be an array")
 
@@ -223,13 +227,12 @@ def parse_eval_body(request_data: str | bytes | dict) -> ParsedEvalBody:
         parsed_scores = []
         for i, score in enumerate(scores_data):
             try:
-                if not isinstance(score, dict):
+                if not _is_str_dict(score):
                     raise ValidationError(f"Score at index {i} must be an object")
-                score_dict: dict[str, Any] = score
                 parsed_scores.append(
                     {
-                        "name": score_dict["name"],
-                        "function_id": parse_function_id(score_dict["function_id"], f"scores[{i}]"),
+                        "name": score["name"],
+                        "function_id": parse_function_id(score["function_id"], f"scores[{i}]"),
                     }
                 )
             except ValidationError as e:

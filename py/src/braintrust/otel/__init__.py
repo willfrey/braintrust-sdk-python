@@ -227,7 +227,7 @@ def add_braintrust_span_processor(
     tracer_provider.add_span_processor(processor)
 
 
-class BraintrustSpanProcessor:
+class BraintrustSpanProcessor(SpanProcessor):
     """
     A convenient all-in-one span processor for Braintrust OpenTelemetry integration.
 

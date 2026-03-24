@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import time
+from collections.abc import Callable
 from typing import Any
 
 from braintrust.logger import start_span
@@ -22,7 +22,9 @@ def wrap_team(Team: Any) -> Any:
     if is_patched(Team):
         return Team
 
-    def _create_run_span(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any], input_data: dict):
+    def _create_run_span(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any], input_data: dict
+    ):
         """Shared logic to create span and execute run method."""
         agent_name = getattr(instance, "name", None) or "Team"
         span_name = f"{agent_name}.run"
@@ -40,7 +42,9 @@ def wrap_team(Team: Any) -> Any:
             )
             return result
 
-    def _run_wrapper_private(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def _run_wrapper_private(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         """Entry point for private _run(run_response, run_messages)."""
         run_response = args[0] if len(args) > 0 else kwargs.get("run_response")
         run_messages = args[1] if len(args) > 1 else kwargs.get("run_messages")
@@ -58,7 +62,9 @@ def wrap_team(Team: Any) -> Any:
     elif hasattr(Team, "run"):
         wrap_function_wrapper(Team, "run", _run_wrapper_public)
 
-    async def _create_arun_span_private(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any], input_data: dict):
+    async def _create_arun_span_private(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any], input_data: dict
+    ):
         """Shared logic to create span and execute async private _arun method."""
         agent_name = getattr(instance, "name", None) or "Team"
         span_name = f"{agent_name}.arun"
@@ -76,14 +82,18 @@ def wrap_team(Team: Any) -> Any:
             )
             return result
 
-    async def _arun_wrapper_private(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def _arun_wrapper_private(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         """Entry point for private _arun(run_response, input)."""
         run_response = args[0] if len(args) > 0 else kwargs.get("run_response")
         input_arg = args[1] if len(args) > 1 else kwargs.get("input")
         input_data = {"run_response": run_response, "input": input_arg}
         return await _create_arun_span_private(wrapped, instance, args, kwargs, input_data)
 
-    def _arun_wrapper_public(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def _arun_wrapper_public(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         return arun_public_dispatch_wrapper(
             wrapped, instance, args, kwargs, default_name="Team", metadata_component="team"
         )

@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover
     class InvalidVersion(Exception):
         """Compatibility shim when packaging is unavailable."""
 
-    def Version(version: str) -> Any:  # type: ignore[misc]
+    def Version(version: str) -> Any:
         return parse_version(version)
 
 

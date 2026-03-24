@@ -47,6 +47,7 @@ class TestBTJson(TestCase):
         self.assertEqual(original["nested_dict"]["inner"], "data")
         self.assertEqual(original["nested_dict"]["deep"]["level"], 3)
         self.assertEqual(original["nested_list"][0], 1)
+        assert isinstance(original["nested_list"][2], list)
         self.assertEqual(original["nested_list"][2][0], 3)
         self.assertEqual(original["nested_in_list"][0]["key"], "val")
 
@@ -373,9 +374,10 @@ class TestBTJsonAttachments(TestCase):
         self.assertIs(result_ext, ext_attachment)
 
         # Test ReadonlyAttachment conversion to reference
+        from braintrust._generated_types import BraintrustAttachmentReference
         from braintrust.logger import ReadonlyAttachment
 
-        reference = {
+        reference: BraintrustAttachmentReference = {
             "type": "braintrust_attachment",
             "key": "test-key",
             "filename": "readonly.txt",
@@ -493,11 +495,12 @@ class TestBTJsonAttachments(TestCase):
 
     def test_bt_safe_deep_copy_mixed_attachment_types(self):
         """Test bt_safe_deep_copy with BaseAttachment and ReadonlyAttachment together."""
+        from braintrust._generated_types import BraintrustAttachmentReference
         from braintrust.logger import ReadonlyAttachment
 
         base_attachment = Attachment(data=b"base", filename="base.txt", content_type="text/plain")
 
-        reference = {
+        reference: BraintrustAttachmentReference = {
             "type": "braintrust_attachment",
             "key": "readonly-key",
             "filename": "readonly.txt",

@@ -98,7 +98,7 @@ def _wrap_create_thread(create_thread):
 
         return create_thread(_run_in_context, *args, **kwargs)
 
-    _wrapped_create_thread._braintrust_patched = True
+    setattr(_wrapped_create_thread, "_braintrust_patched", True)
     return _wrapped_create_thread
 
 
@@ -106,7 +106,9 @@ def wrap_agent(Agent: Any) -> Any:
     if _is_patched(Agent):
         return Agent
 
-    async def agent_run_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def agent_run_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         parent_context = args[0] if len(args) > 0 else kwargs.get("parent_context")
 
         async def _trace():
@@ -165,7 +167,9 @@ def wrap_flow(Flow: Any):
 
     wrap_function_wrapper(Flow, "run_async", trace_flow)
 
-    async def trace_run_sync_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def trace_run_sync_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         invocation_context = args[0] if len(args) > 0 else kwargs.get("invocation_context")
         llm_request = args[1] if len(args) > 1 else kwargs.get("llm_request")
         model_response_event = args[2] if len(args) > 2 else kwargs.get("model_response_event")
@@ -279,7 +283,9 @@ def wrap_runner(Runner: Any):
     if _is_patched(Runner):
         return Runner
 
-    def trace_run_sync_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def trace_run_sync_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         user_id = kwargs.get("user_id")
         session_id = kwargs.get("session_id")
         new_message = kwargs.get("new_message")
@@ -312,7 +318,9 @@ def wrap_runner(Runner: Any):
 
     wrap_function_wrapper(Runner, "run", trace_run_sync_wrapper)
 
-    async def trace_run_async_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def trace_run_async_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         user_id = kwargs.get("user_id")
         session_id = kwargs.get("session_id")
         new_message = kwargs.get("new_message")
@@ -373,7 +381,9 @@ def wrap_mcp_tool(McpTool: Any) -> Any:
     if _is_patched(McpTool):
         return McpTool
 
-    async def tool_run_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def tool_run_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         # Extract tool information
         tool_name = instance.name
         tool_args = kwargs.get("args", {})

@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import time
+from collections.abc import Callable
 from typing import Any
 
 from braintrust.logger import start_span
@@ -90,7 +90,9 @@ def wrap_workflow(Workflow: Any) -> Any:
     if hasattr(Workflow, "_execute"):
         wrap_function_wrapper(Workflow, "_execute", execute_wrapper)
 
-    def execute_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def execute_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         workflow_name = getattr(instance, "name", None) or "Workflow"
         span_name = f"{workflow_name}.run_stream"
 
@@ -149,7 +151,9 @@ def wrap_workflow(Workflow: Any) -> Any:
     if hasattr(Workflow, "_execute_stream"):
         wrap_function_wrapper(Workflow, "_execute_stream", execute_stream_wrapper)
 
-    async def aexecute_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def aexecute_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         workflow_name = getattr(instance, "name", None) or "Workflow"
         span_name = f"{workflow_name}.arun"
 
@@ -173,7 +177,9 @@ def wrap_workflow(Workflow: Any) -> Any:
     if hasattr(Workflow, "_aexecute"):
         wrap_function_wrapper(Workflow, "_aexecute", aexecute_wrapper)
 
-    def aexecute_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def aexecute_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         workflow_name = getattr(instance, "name", None) or "Workflow"
         span_name = f"{workflow_name}.arun_stream"
 
@@ -232,7 +238,9 @@ def wrap_workflow(Workflow: Any) -> Any:
     if hasattr(Workflow, "_aexecute_stream"):
         wrap_function_wrapper(Workflow, "_aexecute_stream", aexecute_stream_wrapper)
 
-    def execute_workflow_agent_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def execute_workflow_agent_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         stream = kwargs.get("stream", False)
         span_suffix = "run_stream" if stream else "run"
         span_name, workflow_metadata = _workflow_span_config(instance, span_suffix)
@@ -291,7 +299,9 @@ def wrap_workflow(Workflow: Any) -> Any:
     if hasattr(Workflow, "_execute_workflow_agent"):
         wrap_function_wrapper(Workflow, "_execute_workflow_agent", execute_workflow_agent_wrapper)
 
-    async def aexecute_workflow_agent_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def aexecute_workflow_agent_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         stream = kwargs.get("stream", False)
         span_suffix = "arun_stream" if stream else "arun"
         span_name, workflow_metadata = _workflow_span_config(instance, span_suffix)

@@ -1,6 +1,7 @@
 """Tests for Trace functionality."""
 
 import pytest
+from braintrust.logger import BraintrustState
 from braintrust.trace import CachedSpanFetcher, LocalTrace, SpanData
 
 
@@ -272,12 +273,12 @@ class _DummySpanCache:
         return None
 
 
-class _DummyState:
+class _DummyState(BraintrustState):
     def __init__(self):
         self.span_cache = _DummySpanCache()
 
-    def login(self):
-        return None
+    def login(self, app_url=None, api_key=None, org_name=None, force_login=False) -> None:
+        pass
 
 
 class TestLocalTraceGetThread:

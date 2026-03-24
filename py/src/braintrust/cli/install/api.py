@@ -499,7 +499,7 @@ def main(args):
                     patch_args["api_url"] = universal_url
                     patch_args["is_universal_api"] = True
                     _logger.info(f"  API URL: {universal_url}")
-                    _logger.warn(
+                    _logger.warning(
                         f"\nNOTE: You can delete the proxy URL from your org settings now. It is no longer needed."
                     )
 

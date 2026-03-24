@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import ANY
 
 import pytest
@@ -63,15 +64,16 @@ def test_langchain_anthropic_integration(
     else:
         assert False, "No LLM span contained the expected answer '3'"
 
+    expected_metrics: dict[str, Any] = {
+        "completion_tokens": 13,
+        "end": ANY,
+        "prompt_tokens": 16,
+        "start": ANY,
+        "total_tokens": 29,
+    }
     assert_matches_object(
         llm_span["metrics"],
-        {
-            "completion_tokens": 13,
-            "end": ANY,
-            "prompt_tokens": 16,
-            "start": ANY,
-            "total_tokens": 29,
-        },
+        expected_metrics,
     )
 
 

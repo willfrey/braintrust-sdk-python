@@ -1,11 +1,13 @@
 try:
-    from importlib.metadata import PackageNotFoundError, version
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _get_version
 except ImportError:
     # Python < 3.8 compatibility
-    from importlib_metadata import PackageNotFoundError, version  # type: ignore
+    from importlib_metadata import PackageNotFoundError
+    from importlib_metadata import version as _get_version
 
 try:
-    __version__ = version("braintrust-langchain")
+    __version__ = _get_version("braintrust-langchain")
 except PackageNotFoundError:
     # Package is not installed (e.g., during development)
     # Fallback to a dev version

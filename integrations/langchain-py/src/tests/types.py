@@ -21,12 +21,23 @@ class SpanRequired(TypedDict):
     span_id: str
 
 
+class SpanMetrics(TypedDict, total=False):
+    start: float
+    end: float
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    prompt_cache_creation_tokens: int
+    prompt_cached_tokens: int
+
+
 class Span(SpanRequired, total=False):
     span_attributes: SpanAttributes
     input: Any
     output: Any
     span_parents: Optional[List[str]]
     metadata: SpanMetadata
+    metrics: SpanMetrics
 
 
 class LogRequest(TypedDict):

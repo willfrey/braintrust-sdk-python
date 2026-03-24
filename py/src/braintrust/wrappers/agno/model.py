@@ -1,4 +1,6 @@
 from collections.abc import Callable
+
+
 """
 ModelWrapper class for Braintrust-Agno model observability.
 """
@@ -53,7 +55,9 @@ def wrap_model(Model: Any) -> Any:
     if hasattr(Model, "invoke"):
         wrap_function_wrapper(Model, "invoke", invoke_wrapper)
 
-    async def ainvoke_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def ainvoke_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name = _get_model_name(instance)
         span_name = f"{model_name}.ainvoke"
 
@@ -80,7 +84,9 @@ def wrap_model(Model: Any) -> Any:
     if hasattr(Model, "ainvoke"):
         wrap_function_wrapper(Model, "ainvoke", ainvoke_wrapper)
 
-    def invoke_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def invoke_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name = _get_model_name(instance)
         span_name = f"{model_name}.invoke_stream"
 
@@ -125,7 +131,9 @@ def wrap_model(Model: Any) -> Any:
     if hasattr(Model, "invoke_stream"):
         wrap_function_wrapper(Model, "invoke_stream", invoke_stream_wrapper)
 
-    def ainvoke_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def ainvoke_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name = _get_model_name(instance)
         span_name = f"{model_name}.ainvoke_stream"
 
@@ -195,7 +203,9 @@ def wrap_model(Model: Any) -> Any:
     if hasattr(Model, "response"):
         wrap_function_wrapper(Model, "response", response_wrapper)
 
-    async def aresponse_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def aresponse_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name = _get_model_name(instance)
         span_name = f"{model_name}.aresponse"
 
@@ -220,7 +230,9 @@ def wrap_model(Model: Any) -> Any:
     if hasattr(Model, "aresponse"):
         wrap_function_wrapper(Model, "aresponse", aresponse_wrapper)
 
-    def response_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def response_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name = _get_model_name(instance)
         span_name = f"{model_name}.response_stream"
 
@@ -263,7 +275,9 @@ def wrap_model(Model: Any) -> Any:
     if hasattr(Model, "response_stream"):
         wrap_function_wrapper(Model, "response_stream", response_stream_wrapper)
 
-    def aresponse_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def aresponse_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name = _get_model_name(instance)
         span_name = f"{model_name}.aresponse_stream"
 

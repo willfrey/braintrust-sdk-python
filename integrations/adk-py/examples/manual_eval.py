@@ -6,6 +6,7 @@ import asyncio
 from typing import Any
 
 from braintrust.framework import EvalAsync
+from braintrust_adk import setup_adk
 from manual import main as manual
 
 

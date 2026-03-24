@@ -105,8 +105,9 @@ def main():
     project.flush()
 
     # Then flush OTEL spans so they can attach to existing parents
-    if hasattr(trace.get_tracer_provider(), "force_flush"):
-        trace.get_tracer_provider().force_flush(timeout_millis=5000)
+    tp = trace.get_tracer_provider()
+    if hasattr(tp, "force_flush"):
+        getattr(tp, "force_flush")(timeout_millis=5000)
 
 
 if __name__ == "__main__":

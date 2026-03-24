@@ -1814,10 +1814,10 @@ async def test_setup_claude_agent_sdk_repro_import_before_setup(memory_logger, m
 
     consumer_module_name = "test_issue7_repro_module"
     consumer_module = types.ModuleType(consumer_module_name)
-    consumer_module.ClaudeSDKClient = original_client
-    consumer_module.ClaudeAgentOptions = claude_agent_sdk.ClaudeAgentOptions
-    consumer_module.SdkMcpTool = original_tool_class
-    consumer_module.tool = original_tool_fn
+    setattr(consumer_module, "ClaudeSDKClient", original_client)
+    setattr(consumer_module, "ClaudeAgentOptions", claude_agent_sdk.ClaudeAgentOptions)
+    setattr(consumer_module, "SdkMcpTool", original_tool_class)
+    setattr(consumer_module, "tool", original_tool_fn)
     monkeypatch.setitem(sys.modules, consumer_module_name, consumer_module)
 
     loop_errors = []

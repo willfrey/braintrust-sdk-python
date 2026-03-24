@@ -482,7 +482,7 @@ async def test_async_streaming():
 
                 full_content = ""
                 async for chunk in chain.astream({"category": category}):
-                    if chunk.content:
+                    if chunk.content and isinstance(chunk.content, str):
                         print(chunk.content, end="", flush=True)
                         full_content += chunk.content
                 print("\n")

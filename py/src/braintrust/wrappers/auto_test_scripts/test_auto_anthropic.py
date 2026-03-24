@@ -1,6 +1,7 @@
 """Test auto_instrument for Anthropic."""
 
 import anthropic
+from anthropic.types import TextBlock
 from braintrust.auto import auto_instrument
 from braintrust.wrappers.test_utils import autoinstrument_test_context
 
@@ -25,7 +26,7 @@ with autoinstrument_test_context("test_auto_anthropic") as memory_logger:
         max_tokens=100,
         messages=[{"role": "user", "content": "Say hi"}],
     )
-    assert response.content[0].text
+    assert isinstance(response.content[0], TextBlock) and response.content[0].text
 
     spans = memory_logger.pop()
     assert len(spans) == 1, f"Expected 1 span, got {len(spans)}"

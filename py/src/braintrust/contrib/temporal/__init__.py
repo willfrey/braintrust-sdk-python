@@ -173,7 +173,7 @@ class BraintrustInterceptor(temporalio.client.Interceptor, temporalio.worker.Int
 
     def _span_context_to_headers(
         self,
-        span_context: dict[str, Any],
+        span_context: str | dict[str, Any],
         headers: Mapping[str, temporalio.api.common.v1.Payload],
     ) -> Mapping[str, temporalio.api.common.v1.Payload]:
         """Add span context to headers."""
@@ -373,11 +373,11 @@ class _BraintrustWorkflowOutboundInterceptor(temporalio.worker.WorkflowOutboundI
         input.headers = self._add_span_context_to_headers(input.headers)
         return super().start_local_activity(input)
 
-    def start_child_workflow(
+    async def start_child_workflow(
         self, input: temporalio.worker.StartChildWorkflowInput
-    ) -> temporalio.workflow.ChildWorkflowHandle:
+    ) -> temporalio.workflow.ChildWorkflowHandle[Any, Any]:
         input.headers = self._add_span_context_to_headers(input.headers)
-        return super().start_child_workflow(input)
+        return await super().start_child_workflow(input)
 
 
 def _modify_workflow_runner(existing: WorkflowRunner | None) -> WorkflowRunner | None:
@@ -423,19 +423,16 @@ class BraintrustPlugin(SimplePlugin):
 
         # temporalio >= 1.23.0 merged client_interceptors/worker_interceptors
         # into a single `interceptors` parameter.
+        init_kwargs: dict[str, Any] = {
+            "name": "braintrust",
+            "workflow_runner": _modify_workflow_runner,
+        }
         if "interceptors" in params:
-            super().__init__(  # pylint: disable=unexpected-keyword-arg
-                name="braintrust",
-                interceptors=[interceptor],
-                workflow_runner=_modify_workflow_runner,
-            )
+            init_kwargs["interceptors"] = [interceptor]
         else:
-            super().__init__(
-                name="braintrust",
-                client_interceptors=[interceptor],
-                worker_interceptors=[interceptor],
-                workflow_runner=_modify_workflow_runner,
-            )
+            init_kwargs["client_interceptors"] = [interceptor]
+            init_kwargs["worker_interceptors"] = [interceptor]
+        super().__init__(**init_kwargs)
 
 
 __all__ = ["BraintrustInterceptor", "BraintrustPlugin"]

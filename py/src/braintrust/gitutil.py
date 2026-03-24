@@ -10,10 +10,15 @@ from .git_fields import GitMetadataSettings, RepoInfo
 
 # https://stackoverflow.com/questions/48399498/git-executable-not-found-in-python
 os.environ["GIT_PYTHON_REFRESH"] = "quiet"
+import types as _types
+
+git: _types.ModuleType | None = None
 try:
-    import git
+    import git as _git_module
+
+    git = _git_module
 except ImportError:
-    git = None
+    pass
 
 _logger = logging.getLogger("braintrust.gitutil")
 _gitlock = threading.RLock()

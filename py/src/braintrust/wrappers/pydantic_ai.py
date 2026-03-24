@@ -79,7 +79,9 @@ def wrap_agent(Agent: Any) -> Any:
             model_class = type(instance._model)
             _wrap_concrete_model_class(model_class)
 
-    async def agent_run_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def agent_run_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         _ensure_model_wrapped(instance)
         input_data, metadata = _build_agent_input_and_metadata(args, kwargs, instance)
 
@@ -103,7 +105,9 @@ def wrap_agent(Agent: Any) -> Any:
 
     wrap_function_wrapper(Agent, "run", agent_run_wrapper)
 
-    def agent_run_sync_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def agent_run_sync_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         _ensure_model_wrapped(instance)
         input_data, metadata = _build_agent_input_and_metadata(args, kwargs, instance)
 
@@ -129,7 +133,9 @@ def wrap_agent(Agent: Any) -> Any:
 
     wrap_function_wrapper(Agent, "run_sync", agent_run_sync_wrapper)
 
-    def agent_to_cli_sync_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def agent_to_cli_sync_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         _ensure_model_wrapped(instance)
         input_data, metadata = _build_agent_input_and_metadata(args, kwargs, instance)
 
@@ -149,7 +155,9 @@ def wrap_agent(Agent: Any) -> Any:
 
     wrap_function_wrapper(Agent, "to_cli_sync", agent_to_cli_sync_wrapper)
 
-    def agent_run_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def agent_run_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         _ensure_model_wrapped(instance)
         input_data, metadata = _build_agent_input_and_metadata(args, kwargs, instance)
         agent_name = instance.name if hasattr(instance, "name") else None
@@ -164,7 +172,9 @@ def wrap_agent(Agent: Any) -> Any:
 
     wrap_function_wrapper(Agent, "run_stream", agent_run_stream_wrapper)
 
-    def agent_run_stream_sync_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def agent_run_stream_sync_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         _ensure_model_wrapped(instance)
         input_data, metadata = _build_agent_input_and_metadata(args, kwargs, instance)
         agent_name = instance.name if hasattr(instance, "name") else None
@@ -196,7 +206,9 @@ def wrap_agent(Agent: Any) -> Any:
 
     wrap_function_wrapper(Agent, "run_stream_sync", agent_run_stream_sync_wrapper)
 
-    async def agent_run_stream_events_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def agent_run_stream_events_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         _ensure_model_wrapped(instance)
         input_data, metadata = _build_agent_input_and_metadata(args, kwargs, instance)
 
@@ -225,7 +237,7 @@ def wrap_agent(Agent: Any) -> Any:
                 _create_tool_spans_from_messages(final_result)
 
             output = None
-            metrics = {
+            metrics: dict[str, float | int] = {
                 "start": start_time,
                 "end": end_time,
                 "duration": end_time - start_time,
@@ -235,7 +247,8 @@ def wrap_agent(Agent: Any) -> Any:
             if final_result:
                 output = _serialize_result_output(final_result)
                 usage_metrics = _extract_usage_metrics(final_result, start_time, end_time)
-                metrics.update(usage_metrics)
+                if usage_metrics is not None:
+                    metrics.update(usage_metrics)
 
             agent_span.log(output=output, metrics=metrics)
 
@@ -452,7 +465,9 @@ def _wrap_concrete_model_class(model_class: Any):
     if _is_patched(model_class):
         return
 
-    async def model_request_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def model_request_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name, display_name, input_data, metadata = _build_model_class_input_and_metadata(instance, args, kwargs)
 
         with start_span(
@@ -471,7 +486,9 @@ def _wrap_concrete_model_class(model_class: Any):
             span.log(output=output, metrics=metrics)
             return result
 
-    def model_request_stream_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def model_request_stream_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         model_name, display_name, input_data, metadata = _build_model_class_input_and_metadata(instance, args, kwargs)
 
         return _DirectStreamWrapper(
@@ -1346,7 +1363,9 @@ def _serialize_type(obj: Any) -> Any:
     return bt_safe_deep_copy(obj)
 
 
-def _build_agent_input_and_metadata(args: tuple[Any, ...], kwargs: dict[str, Any], instance: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+def _build_agent_input_and_metadata(
+    args: tuple[Any, ...], kwargs: dict[str, Any], instance: Any
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build input data and metadata for agent wrappers.
 
     Returns:
@@ -1451,7 +1470,9 @@ def _build_agent_input_and_metadata(args: tuple[Any, ...], kwargs: dict[str, Any
     return input_data, metadata
 
 
-def _build_direct_model_input_and_metadata(args: tuple[Any, ...], kwargs: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def _build_direct_model_input_and_metadata(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build input data and metadata for direct model request wrappers.
 
     Returns:

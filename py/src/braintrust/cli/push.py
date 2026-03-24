@@ -218,12 +218,12 @@ def _collect_function_function_defs(
 ) -> None:
     for i, f in enumerate(global_.functions):
         source = inspect.getsource(f.handler)
-        if f.handler.__name__ == "<lambda>":
+        if getattr(f.handler, "__name__", None) == "<lambda>":
             m = re.search(r"handler\s*=\s*(.+)\s*[,)]", source)
             if m is None:
                 raise ValueError(f"Failed to find handler for {f.name}")
             source = m.group(1)
-        j = {
+        j: dict[str, Any] = {
             "project_id": project_ids.get(f.project),
             "name": f.name,
             "slug": f.slug,
@@ -372,6 +372,7 @@ def run(args):
         bundle_id = _upload_bundle(module_name, sources, args.requirements)
 
     if len(global_.functions) > 0:
+        assert bundle_id is not None
         _collect_function_function_defs(project_ids, functions, bundle_id, args.if_exists)
 
     if len(evaluators) > 0:

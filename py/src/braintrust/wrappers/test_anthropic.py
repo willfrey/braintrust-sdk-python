@@ -6,6 +6,7 @@ import time
 
 import anthropic
 import pytest
+from anthropic.types import TextBlock
 from braintrust import logger
 from braintrust.test_helpers import init_test_logger
 from braintrust.wrappers.anthropic import wrap_anthropic
@@ -594,7 +595,7 @@ class TestPatchAnthropicSpans:
             max_tokens=100,
             messages=[{"role": "user", "content": "Say hi"}],
         )
-        assert response.content[0].text
+        assert isinstance(response.content[0], TextBlock) and response.content[0].text
 
         # Verify span was created
         spans = memory_logger.pop()
@@ -623,7 +624,7 @@ class TestPatchAnthropicAsyncSpans:
             max_tokens=100,
             messages=[{"role": "user", "content": "Say hi async"}],
         )
-        assert response.content[0].text
+        assert isinstance(response.content[0], TextBlock) and response.content[0].text
 
         # Verify span was created
         spans = memory_logger.pop()

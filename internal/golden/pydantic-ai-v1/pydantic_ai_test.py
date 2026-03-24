@@ -55,14 +55,18 @@ async def test_basic_completion():
     model = OpenAIChatModel("gpt-4o")
     messages: list[ModelMessage] = [ModelRequest(parts=[UserPromptPart(content="What is the capital of Italy?")])]
     direct_result = await model_request(model=model, messages=messages)
-    print(direct_result.parts[0].content)
+    first_part = direct_result.parts[0]
+    if isinstance(first_part, TextPart):
+        print(first_part.content)
 
     # Low-level Direct API with model_settings
     print("\n--- Direct API with model_settings ---")
     settings = ModelSettings(max_tokens=50, temperature=0.8)
     messages_with_settings: list[ModelMessage] = [ModelRequest(parts=[UserPromptPart(content="Say hello in 5 words")])]
     direct_result_settings = await model_request(model=model, messages=messages_with_settings, model_settings=settings)
-    print(f"Result: {direct_result_settings.parts[0].content}")
+    first_part_settings = direct_result_settings.parts[0]
+    if isinstance(first_part_settings, TextPart):
+        print(f"Result: {first_part_settings.content}")
     print(
         f"Usage: input={direct_result_settings.usage.input_tokens}, output={direct_result_settings.usage.output_tokens}"
     )
@@ -160,8 +164,9 @@ async def test_streaming():
                     # Extract content_delta from TextPartDelta
                     if hasattr(chunk.delta, "content_delta") and chunk.delta.content_delta:
                         text = chunk.delta.content_delta
-                        print(text, end="", flush=True)
-                        direct_text += text
+                        if isinstance(text, str):
+                            print(text, end="", flush=True)
+                            direct_text += text
                     elif isinstance(chunk.delta, str):
                         # Handle case where delta is already a string
                         print(chunk.delta, end="", flush=True)
@@ -189,8 +194,9 @@ async def test_streaming():
                     # Extract content_delta from TextPartDelta
                     if hasattr(chunk.delta, "content_delta") and chunk.delta.content_delta:
                         text = chunk.delta.content_delta
-                        print(text, end="", flush=True)
-                        direct_text_4 += text
+                        if isinstance(text, str):
+                            print(text, end="", flush=True)
+                            direct_text_4 += text
                     elif isinstance(chunk.delta, str):
                         # Handle case where delta is already a string
                         print(chunk.delta, end="", flush=True)
@@ -224,8 +230,9 @@ async def test_streaming():
                         seen_delta_5 = True
                         if hasattr(chunk.delta, "content_delta") and chunk.delta.content_delta:
                             text = chunk.delta.content_delta
-                            print(text, end="", flush=True)
-                            early_break_text += text
+                            if isinstance(text, str):
+                                print(text, end="", flush=True)
+                                early_break_text += text
                         elif isinstance(chunk.delta, str):
                             print(chunk.delta, end="", flush=True)
                             early_break_text += chunk.delta
@@ -269,8 +276,9 @@ async def test_streaming():
                         seen_delta_6 = True
                         if hasattr(event.delta, "content_delta") and event.delta.content_delta:
                             text = event.delta.content_delta
-                            print(text, end="", flush=True)
-                            generator_text += text
+                            if isinstance(text, str):
+                                print(text, end="", flush=True)
+                                generator_text += text
                         elif isinstance(event.delta, str):
                             print(event.delta, end="", flush=True)
                             generator_text += event.delta
@@ -429,9 +437,10 @@ async def test_stop_sequences():
 @traced
 async def test_metadata():
     print("\n=== Test 9: Metadata ===")
-    agent = Agent(
+    agent: Agent[str, str] = Agent(
         "openai:gpt-4o",
         model_settings=ModelSettings(max_tokens=100),
+        deps_type=str,
     )
 
     result = await agent.run("Hello!", deps="test_user_123")

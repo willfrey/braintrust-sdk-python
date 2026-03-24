@@ -62,7 +62,7 @@ with tracer.start_as_current_span("filtered.otel.example") as main_span:
         model="gpt-3.5-turbo", messages=[{"role": "user", "content": "Hello, world!"}], max_tokens=10
     )
 
-    main_span.set_attribute("openai_response", response.choices[0].message.content)
+    main_span.set_attribute("openai_response", response.choices[0].message.content or "")
 
     # This span will be kept (LLM-related)
     with tracer.start_as_current_span("microservice-call") as llm_span:
@@ -75,4 +75,4 @@ with tracer.start_as_current_span("filtered.otel.example") as main_span:
         time.sleep(0.05)
 
 # Force flush to ensure spans are sent
-trace.get_tracer_provider().force_flush(30)
+provider.force_flush(30)

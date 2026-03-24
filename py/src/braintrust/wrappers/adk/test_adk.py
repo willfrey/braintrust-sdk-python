@@ -6,6 +6,7 @@ import pytest
 from braintrust import logger
 from braintrust.bt_json import bt_safe_deep_copy
 from braintrust.logger import Attachment
+from braintrust.span_types import SpanTypeAttribute
 from braintrust.test_helpers import init_test_logger
 from braintrust.wrappers.adk import _wrap_create_thread, setup_adk
 from google.adk import Agent
@@ -748,7 +749,7 @@ async def test_llm_call_span_wraps_child_spans(memory_logger):
 
             # During execution, child spans might be created (like mcp_tool calls)
             # This simulates an MCP tool being called during LLM execution
-            with start_span(name="mcp_tool [test_tool]", type="tool") as tool_span:
+            with start_span(name="mcp_tool [test_tool]", type=SpanTypeAttribute.TOOL) as tool_span:
                 tool_span.log(output={"result": "success"})
 
             yield {"type": "complete", "content": {"parts": [{"text": "Done"}], "role": "model"}}

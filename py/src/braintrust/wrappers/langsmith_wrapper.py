@@ -46,6 +46,7 @@ from braintrust.framework import EvalCase
 from braintrust.logger import NOOP_SPAN, current_span, init_logger, traced
 from wrapt import wrap_function_wrapper
 
+
 if TYPE_CHECKING:
     from braintrust.score import Score
 
@@ -154,7 +155,7 @@ def wrap_traceable(traceable: F, standalone: bool = False) -> F:
         func = args[0] if args and callable(args[0]) else None
 
         def decorator(fn: Callable[P, R]) -> Callable[P, R]:
-            span_name = kwargs.get("name") or fn.__name__
+            span_name = kwargs.get("name") or getattr(fn, "__name__", "")
 
             # Conditionally apply LangSmith decorator first
             if not standalone:
@@ -209,7 +210,9 @@ def wrap_client(
 def make_evaluate_wrapper(
     *, project_name: Optional[str] = None, project_id: Optional[str] = None, standalone: bool = False
 ):
-    def evaluate_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
+    def evaluate_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: Dict[str, Any]
+    ) -> Any:
         result = None
         if not standalone:
             result = wrapped(*args, **kwargs)
@@ -236,7 +239,9 @@ def make_evaluate_wrapper(
 def make_aevaluate_wrapper(
     *, project_name: Optional[str] = None, project_id: Optional[str] = None, standalone: bool = False
 ):
-    async def aevaluate_wrapper(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
+    async def aevaluate_wrapper(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: Dict[str, Any]
+    ) -> Any:
         result = None
         if not standalone:
             result = await wrapped(*args, **kwargs)

@@ -2053,7 +2053,7 @@ def load_prompt(
     )
 
 
-def _is_parameters_ref(value: object) -> bool:
+def _is_parameters_ref(value: Any) -> bool:
     return isinstance(value, dict) and isinstance(value.get("id"), str)
 
 
@@ -4633,7 +4633,7 @@ class Dataset(ObjectFetcher[DatasetEvent]):
                 f"""Records will be fetched from this dataset in the legacy format, with the "expected" field renamed to "output". Please update your code to use "expected", and use `braintrust.init_dataset()` with `use_output=False`, which will become the default in a future version of Braintrust."""
             )
 
-        def mutate_record(r: DatasetEvent) -> DatasetEvent:
+        def mutate_record(r: DatasetEvent) -> dict[str, Any]:
             _enrich_attachments(cast(dict[str, Any], r))
             return ensure_dataset_record(r, legacy)
 

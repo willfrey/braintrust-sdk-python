@@ -5,6 +5,7 @@
 import asyncio
 import inspect
 import time
+from typing import Any
 
 import pytest
 from braintrust import logger, setup_pydantic_ai, traced
@@ -201,7 +202,7 @@ def test_agent_to_cli_sync(memory_logger, monkeypatch):
 
     monkeypatch.setattr("pydantic_ai._cli.run_chat", fake_run_chat)
 
-    cli_kwargs = {
+    cli_kwargs: dict[str, Any] = {
         "prog_name": "braintrust-cli",
         "message_history": message_history,
     }
@@ -2802,7 +2803,7 @@ def test_model_request_stream_sync_thread_context_propagation(memory_logger, dir
             return super()._async_producer()
 
     # Temporarily replace StreamedResponseSync
-    pydantic_direct.StreamedResponseSync = InstrumentedStreamedResponseSync
+    setattr(pydantic_direct, "StreamedResponseSync", InstrumentedStreamedResponseSync)
 
     try:
         messages = [ModelRequest(parts=[UserPromptPart(content="Hello")])]

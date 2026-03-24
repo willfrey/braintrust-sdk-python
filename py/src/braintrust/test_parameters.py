@@ -2,6 +2,9 @@ import importlib.util
 
 import pytest
 from braintrust.parameters import (
+    EvalParameters,
+    ModelParameter,
+    PromptParameter,
     RemoteEvalParameters,
     parameters_to_json_schema,
     serialize_eval_parameters,
@@ -29,28 +32,23 @@ def test_validate_local_parameters_with_prompt_and_model_defaults():
     class PrefixParam(BaseModel):
         value: str = "hello"
 
-    result = validate_parameters(
-        {},
-        {
-            "prefix": PrefixParam,
-            "model": {
-                "type": "model",
-                "default": "gpt-5-mini",
-            },
-            "main": {
-                "type": "prompt",
-                "default": {
-                    "prompt": {
-                        "type": "chat",
-                        "messages": [{"role": "user", "content": "{{input}}"}],
-                    },
-                    "options": {
-                        "model": "gpt-5-mini",
-                    },
+    schema: EvalParameters = {
+        "prefix": PrefixParam,
+        "model": ModelParameter(type="model", default="gpt-5-mini"),
+        "main": PromptParameter(
+            type="prompt",
+            default={
+                "prompt": {
+                    "type": "chat",
+                    "messages": [{"role": "user", "content": "{{input}}"}],
+                },
+                "options": {
+                    "model": "gpt-5-mini",
                 },
             },
-        },
-    )
+        ),
+    }
+    result = validate_parameters({}, schema)
 
     assert result["prefix"] == "hello"
     assert result["model"] == "gpt-5-mini"
@@ -409,23 +407,22 @@ def test_parameters_to_json_schema_raises_for_cyclic_local_refs():
 
 @pytest.mark.skipif(not HAS_PYDANTIC, reason="pydantic not installed")
 def test_parameters_to_json_schema_marks_prompt_and_model_without_defaults_required():
-    schema = parameters_to_json_schema(
-        {
-            "prompt_required": {"type": "prompt"},
-            "prompt_optional": {
-                "type": "prompt",
-                "default": {
-                    "prompt": {
-                        "type": "chat",
-                        "messages": [{"role": "user", "content": "{{input}}"}],
-                    },
-                    "options": {"model": "gpt-5-mini"},
+    eval_params: EvalParameters = {
+        "prompt_required": PromptParameter(type="prompt"),
+        "prompt_optional": PromptParameter(
+            type="prompt",
+            default={
+                "prompt": {
+                    "type": "chat",
+                    "messages": [{"role": "user", "content": "{{input}}"}],
                 },
+                "options": {"model": "gpt-5-mini"},
             },
-            "model_required": {"type": "model"},
-            "model_optional": {"type": "model", "default": "gpt-5-mini"},
-        }
-    )
+        ),
+        "model_required": ModelParameter(type="model"),
+        "model_optional": ModelParameter(type="model", default="gpt-5-mini"),
+    }
+    schema = parameters_to_json_schema(eval_params)
 
     assert schema["required"] == ["prompt_required", "model_required"]
 

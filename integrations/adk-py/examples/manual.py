@@ -72,8 +72,8 @@ async def main(text: str = "hi"):
     user_msg = types.Content(role="user", parts=[types.Part(text=text)])
     async for event in runner.run_async(user_id=USER_ID, session_id=SESSION_ID, new_message=user_msg):
         if event.is_final_response():
-            text = event.content.parts[0].text if event.content and event.content.parts else "No response"
-            print(f"Test 1 - Greeting: {text[:100] if text else 'No response'}...")
+            response_text = event.content.parts[0].text if event.content and event.content.parts else "No response"
+            print(f"Test 1 - Greeting: {response_text[:100] if response_text else 'No response'}...")
 
 
 if __name__ == "__main__":

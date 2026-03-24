@@ -4,7 +4,7 @@ import re
 from hashlib import md5
 
 # pylint: disable=no-name-in-module
-from ... import log_conn, login
+from ... import api_conn, login
 
 # pylint: disable=no-name-in-module
 from ...aws import iam, redshift_serverless
@@ -147,7 +147,11 @@ def main(args):
         if namespace is None:
             raise ValueError(f"Serverless Redshift namespace {args.name} does not exist")
 
-        existing_roles = [re.search(r"iamRoleArn=(.*)(,|\))", d).group(1) for d in namespace["namespace"]["iamRoles"]]
+        existing_roles = [
+            m.group(1)
+            for d in namespace["namespace"]["iamRoles"]
+            if (m := re.search(r"iamRoleArn=(.*)(,|\))", d)) is not None
+        ]
         if role_arn not in existing_roles:
             _logger.info(
                 "Adding IAM Role %s to Serverless Redshift namespace %s",
@@ -186,7 +190,7 @@ def main(args):
     login_kwargs = {"org_name": args.org_name} if args.org_name else {}
     login(**login_kwargs)
 
-    resp = log_conn().get(
+    resp = api_conn().get(
         "/dw-test",
         params={"iam_role": role["Role"]["Arn"], "msk_cluster_arn": msk_cluster_arn},
     )

@@ -75,7 +75,7 @@ class BraintrustCallbackHandler(BaseCallbackHandler):
         set_current: bool | None = None,
         parent: str | None = None,
         event: LogEvent | None = None,
-    ) -> Span:
+    ) -> Span | None:
         if run_id in self.spans:
             # XXX: See graph test case of an example where this _may_ be intended.
             _logger.warning(f"Span already exists for run_id {run_id} (this is likely a bug)")

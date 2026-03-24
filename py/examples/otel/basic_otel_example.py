@@ -56,4 +56,4 @@ with tracer.start_as_current_span("basic.otel.example") as main_span:
     time.sleep(0.5)
 
 # Force flush to ensure spans are sent
-trace.get_tracer_provider().force_flush(30)
+provider.force_flush(30)

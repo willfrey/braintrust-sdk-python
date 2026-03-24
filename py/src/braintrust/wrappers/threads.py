@@ -2,8 +2,8 @@ import contextvars
 import functools
 import logging
 import threading
-from concurrent import futures
 from collections.abc import Callable
+from concurrent import futures
 from typing import Any, TypeVar
 
 from wrapt import wrap_function_wrapper  # pyright: ignore[reportUnknownVariableType, reportMissingTypeStubs]
@@ -47,7 +47,9 @@ def patch_thread(thread_cls: T) -> T:
     if __is_patched(thread_cls):
         return thread_cls
 
-    def _wrap_thread_start(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
+    def _wrap_thread_start(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> None:
         try:
             instance._braintrust_context = contextvars.copy_context()
         except Exception as e:
@@ -56,7 +58,9 @@ def patch_thread(thread_cls: T) -> T:
 
     wrap_function_wrapper(thread_cls, "start", _wrap_thread_start)
 
-    def _wrap_thread_run(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
+    def _wrap_thread_run(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> None:
         try:
             if hasattr(instance, "_braintrust_context"):
                 return instance._braintrust_context.run(wrapped, *args, **kwargs)
@@ -86,7 +90,9 @@ def patch_thread_pool_executor(executor_cls: P) -> P:
     if __is_patched(executor_cls):
         return executor_cls
 
-    def _wrap_executor_submit(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]) -> "futures.Future[Any]":
+    def _wrap_executor_submit(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> "futures.Future[Any]":
         try:
             if not args:
                 return wrapped(*args, **kwargs)

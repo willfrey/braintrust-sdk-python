@@ -50,7 +50,6 @@ Advanced Usage with LiteLLM Patching:
 from typing import Any
 
 from braintrust.logger import current_span, start_span
-from braintrust.span_types import SpanTypeAttribute
 from wrapt import wrap_function_wrapper
 
 
@@ -300,7 +299,7 @@ class BraintrustDSpyCallback(BaseCallback):
 
         span = start_span(
             name=tool_name,
-            span_attributes={"type": SpanTypeAttribute.TOOL},
+            span_attributes={"type": "tool"},
             input=inputs,
             parent=parent_export,
         )
@@ -460,7 +459,7 @@ def patch_dspy() -> bool:
             return True  # Already patched
 
         wrap_function_wrapper("dspy", "configure", _configure_wrapper)
-        dspy.__braintrust_wrapped__ = True
+        setattr(dspy, "__braintrust_wrapped__", True)
         return True
 
     except ImportError:

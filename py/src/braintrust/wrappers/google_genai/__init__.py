@@ -53,7 +53,9 @@ def wrap_models(Models: Any):
     if is_patched(Models):
         return Models
 
-    def wrap_generate_content(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def wrap_generate_content(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -71,7 +73,9 @@ def wrap_models(Models: Any):
 
     wrap_function_wrapper(Models, "_generate_content", wrap_generate_content)
 
-    def wrap_generate_content_stream(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    def wrap_generate_content_stream(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -104,7 +108,9 @@ def wrap_async_models(AsyncModels: Any):
     if is_patched(AsyncModels):
         return AsyncModels
 
-    async def wrap_generate_content(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def wrap_generate_content(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)
@@ -122,7 +128,9 @@ def wrap_async_models(AsyncModels: Any):
 
     wrap_function_wrapper(AsyncModels, "generate_content", wrap_generate_content)
 
-    async def wrap_generate_content_stream(wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]):
+    async def wrap_generate_content_stream(
+        wrapped: Callable[..., Any], instance: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ):
         input, clean_kwargs = get_args_kwargs(args, kwargs, ["model", "contents", "config"])
 
         input = _serialize_input(instance._api_client, input)

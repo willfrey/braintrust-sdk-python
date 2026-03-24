@@ -381,7 +381,7 @@ def snake_to_camel(snake_str: str) -> str:
 
 def _build_scorers(
     state: BraintrustState,
-    scores: list[dict[str, Any]],
+    scores: list[Any],
     project_id: str | None,
 ) -> list[EvalScorer[Any, Any]]:
     result = []

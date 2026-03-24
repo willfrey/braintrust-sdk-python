@@ -125,7 +125,8 @@ class BraintrustPytestPlugin:
             return marker.kwargs["project"]
 
         # Default: module path.
-        return item.module.__name__ if item.module else item.nodeid.split("::")[0]
+        module = getattr(item, "module", None)
+        return module.__name__ if module else item.nodeid.split("::")[0]
 
     def _get_or_create_experiment(self, key: str) -> Any:
         """Get or lazily create an experiment for *key*."""
@@ -139,7 +140,8 @@ class BraintrustPytestPlugin:
     def _collect_auto_input(self, item: pytest.Item) -> dict[str, Any] | None:
         """Auto-collect parametrize args as input."""
         if hasattr(item, "callspec"):
-            return dict(item.callspec.params)
+            callspec = getattr(item, "callspec")
+            return dict(callspec.params)
         return None
 
     # -- hooks --------------------------------------------------------------

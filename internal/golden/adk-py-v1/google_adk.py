@@ -75,7 +75,7 @@ async def test_multi_turn():
         # First message
         msg1 = types.Content(role="user", parts=[types.Part(text="Hi, my name is Alice.")])
         async for event in runner.run_async(user_id=USER_ID, session_id="session-multi-turn", new_message=msg1):
-            if event.is_final_response():
+            if event.is_final_response() and event.content and event.content.parts:
                 print(f"Response 1: {event.content.parts[0].text}")
 
         # Second message
@@ -84,7 +84,8 @@ async def test_multi_turn():
         async for event in runner.run_async(user_id=USER_ID, session_id="session-multi-turn", new_message=msg2):
             if event.is_final_response():
                 responses.append(event)
-                print(f"Response 2: {event.content.parts[0].text}")
+                if event.content and event.content.parts:
+                    print(f"Response 2: {event.content.parts[0].text}")
 
         return responses
 
@@ -434,7 +435,7 @@ async def test_prefill():
         # First send the user message
         msg1 = types.Content(role="user", parts=[types.Part(text="Write a haiku about coding.")])
         async for event in runner.run_async(user_id=USER_ID, session_id="session-prefill", new_message=msg1):
-            if event.is_final_response():
+            if event.is_final_response() and event.content and event.content.parts:
                 print(f"Response 1: {event.content.parts[0].text}")
 
         # Then send a prefill message
@@ -443,7 +444,8 @@ async def test_prefill():
         async for event in runner.run_async(user_id=USER_ID, session_id="session-prefill", new_message=msg2):
             if event.is_final_response():
                 responses.append(event)
-                print(f"Response 2: {event.content.parts[0].text}")
+                if event.content and event.content.parts:
+                    print(f"Response 2: {event.content.parts[0].text}")
 
         return responses
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Sequence, Union, cast
+from typing import Any, Dict, List, Mapping, Sequence, Union, cast
 from unittest.mock import ANY
 
 from .types import Span
@@ -79,9 +79,9 @@ def find_spans_by_attributes(spans: List[Span], **attributes: Any) -> List[Span]
             matches = False
             continue
         span_any: Any = span
-        span_attrs = span_any.get("span_attributes", {})
+        span_attrs = span_any.get("span_attributes") or {}
         for key, value in attributes.items():
-            if key not in span_attrs or span_attrs[key] != value:
+            if key not in span_attrs or span_attrs.get(key) != value:
                 matches = False
                 break
         if matches:

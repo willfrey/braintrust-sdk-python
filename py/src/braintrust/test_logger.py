@@ -31,7 +31,17 @@ from braintrust.logger import (
     render_mustache,
     stringify_exception,
 )
-from braintrust.prompt import PromptChatBlock, PromptData, PromptMessage, PromptSchema
+from braintrust.prompt import (
+    FileData,
+    FilePart,
+    ImagePart,
+    ImageURL,
+    PromptChatBlock,
+    PromptData,
+    PromptMessage,
+    PromptSchema,
+    TextPart,
+)
 from braintrust.test_helpers import (
     assert_dict_matches,
     assert_logged_out,
@@ -711,16 +721,9 @@ class TestLogger(TestCase):
         message = PromptMessage(
             role="user",
             content=[
-                {"type": "text", "text": "Here is a {{item}}:"},
-                {"type": "image_url", "image_url": {"url": "{{image_url}}"}},
-                {
-                    "type": "file",
-                    "file": {
-                        "file_data": "{{file_data}}",
-                        "file_id": "{{file_id}}",
-                        "filename": "{{filename}}",
-                    },
-                },
+                TextPart(text="Here is a {{item}}:"),
+                ImagePart(image_url=ImageURL(url="{{image_url}}")),
+                FilePart(file=FileData(file_data="{{file_data}}", file_id="{{file_id}}", filename="{{filename}}")),
             ],
         )
 

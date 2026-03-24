@@ -142,6 +142,7 @@ def test_convert_langsmith_data_with_example_objects():
     assert len(result) == 2
     assert result[0].input == {"x": 1}
     # The whole Example object is passed as expected
+    assert result[0].expected is not None
     assert result[0].expected.inputs == {"x": 1}
     assert result[0].expected.outputs == {"y": 2}
 

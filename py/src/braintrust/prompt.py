@@ -46,8 +46,21 @@ class ImagePart(SerializableDataClass):
 
 
 @dataclass
+class FileData(SerializableDataClass):
+    file_data: str | None = None
+    file_id: str | None = None
+    filename: str | None = None
+
+
+@dataclass
+class FilePart(SerializableDataClass):
+    file: FileData
+    type: Literal["file"] = "file"
+
+
+@dataclass
 class PromptMessage(SerializableDataClass):
-    content: str | list[TextPart | ImagePart]
+    content: str | list[TextPart | ImagePart | FilePart]
     role: Literal["system", "user", "assistant", "function", "tool", "model"]
     name: str | None = None
     function_call: str | FunctionCall | None = None
