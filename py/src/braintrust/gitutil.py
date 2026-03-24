@@ -12,6 +12,7 @@ from .git_fields import GitMetadataSettings, RepoInfo
 os.environ["GIT_PYTHON_REFRESH"] = "quiet"
 import types as _types
 
+
 git: _types.ModuleType | None = None
 try:
     import git as _git_module
