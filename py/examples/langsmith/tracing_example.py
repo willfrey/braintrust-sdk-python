@@ -19,8 +19,8 @@ os.environ.setdefault("LANGCHAIN_PROJECT", "examples-wrappers-langsmith-tracing"
 from braintrust.wrappers.langsmith_wrapper import setup_langsmith
 
 
-# Set BRAINTRUST_STANDALONE=1 to completely replace LangSmith with Braintrust
-standalone = os.environ.get("BRAINTRUST_STANDALONE", "").lower() in ("1", "true", "yes")
+# Set BRAINTRUST_LANGSMITH_STANDALONE=1 to completely replace LangSmith with Braintrust
+standalone = os.environ.get("BRAINTRUST_LANGSMITH_STANDALONE", "").lower() in ("1", "true", "yes")
 
 # project_name is automatically read from LANGCHAIN_PROJECT env var
 setup_langsmith(

@@ -49,7 +49,7 @@ Shows how `@traceable` decorated functions work with Braintrust:
 python tracing_example.py
 
 # Standalone mode (Braintrust only)
-BRAINTRUST_STANDALONE=1 python tracing_example.py
+BRAINTRUST_LANGSMITH_STANDALONE=1 python tracing_example.py
 ```
 
 ### Evaluation Example
@@ -61,7 +61,7 @@ Shows how to migrate `client.evaluate()` calls to use Braintrust's evaluation fr
 python eval_example.py
 
 # Standalone mode
-BRAINTRUST_STANDALONE=1 python eval_example.py
+BRAINTRUST_LANGSMITH_STANDALONE=1 python eval_example.py
 ```
 
 ## What Gets Migrated
